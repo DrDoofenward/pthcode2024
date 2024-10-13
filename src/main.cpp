@@ -1,4 +1,32 @@
 #include "main.h"
+#include "pros/imu.h"
+#include "pros/motors.h"
+#include "pros/motors.hpp"
+
+//assigning the master controller
+pros::Controller master(pros::E_CONTROLLER_MASTER);
+
+//Creating the drivetrain motors and assigning their groups
+pros::Motor driveLF(11,pros::E_MOTOR_GEARSET_06, false);
+pros::Motor driveLB(12,pros::E_MOTOR_GEARSET_06, false);
+pros::Motor driveLT(13,pros::E_MOTOR_GEARSET_06, true);
+
+pros::Motor_Group driveLeft ({driveLF,driveLB,driveLT});
+
+pros::Motor driveRF(20,pros::E_MOTOR_GEARSET_06, false);
+pros::Motor driveRB(19,pros::E_MOTOR_GEARSET_06, false);
+pros::Motor driveRT(18,pros::E_MOTOR_GEARSET_06, true);
+
+pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
+
+/**
+ * The main drive function is the main function to control the drivetrain, it
+ * takes a few variables and does some math and assigns velocities to each of
+ * the 6 drivetrain motors. Used for both autonomous and driver control functions
+ */
+void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
+
+}
 
 /**
  * A callback function for LLEMU's center button.
@@ -75,18 +103,17 @@ void autonomous() {}
  */
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::Motor left_mtr(1);
-	pros::Motor right_mtr(2);
 
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
-		int left = master.get_analog(ANALOG_LEFT_Y);
-		int right = master.get_analog(ANALOG_RIGHT_Y);
 
-		left_mtr = left;
-		right_mtr = right;
+		//finding the joystick value and assigning velocities to the motors
+		int turnVel = master.get_analog(ANALOG_LEFT_X);
+		int forwardVel = master.get_analog(ANALOG_LEFT_Y);
+		assignDrivetrainVelocity(forwardVel, turnVel);
+		
 
 		pros::delay(20);
 	}
