@@ -3,13 +3,16 @@
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 
+//tuneable values for certain systems
+int drivetrainTurnGoverner = 2;
+
 //assigning the master controller
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 //Creating the drivetrain motors and assigning their groups
-pros::Motor driveLF(11,pros::E_MOTOR_GEARSET_06, false);
-pros::Motor driveLB(12,pros::E_MOTOR_GEARSET_06, false);
-pros::Motor driveLT(13,pros::E_MOTOR_GEARSET_06, true);
+pros::Motor driveLF(11,pros::E_MOTOR_GEARSET_06, true);
+pros::Motor driveLB(12,pros::E_MOTOR_GEARSET_06, true);
+pros::Motor driveLT(13,pros::E_MOTOR_GEARSET_06, false);
 
 pros::Motor_Group driveLeft ({driveLF,driveLB,driveLT});
 
@@ -25,7 +28,8 @@ pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
  * the 6 drivetrain motors. Used for both autonomous and driver control functions
  */
 void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
-
+	driveLeft.move_velocity(6*(forward_vel+turn_vel));
+	driveRight.move_velocity(6*(forward_vel-turn_vel));
 }
 
 /**
@@ -55,6 +59,10 @@ void initialize() {
 	pros::lcd::set_text(1, "Hello PROS User!");
 
 	pros::lcd::register_btn1_cb(on_center_button);
+	
+	//tune the drivetrain values
+	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
+	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 }
 
 /**
@@ -110,7 +118,7 @@ void opcontrol() {
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
 
 		//finding the joystick value and assigning velocities to the motors
-		int turnVel = master.get_analog(ANALOG_LEFT_X);
+		int turnVel = (master.get_analog(ANALOG_LEFT_X))/drivetrainTurnGoverner;
 		int forwardVel = master.get_analog(ANALOG_LEFT_Y);
 		assignDrivetrainVelocity(forwardVel, turnVel);
 		
