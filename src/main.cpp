@@ -28,8 +28,8 @@ pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
  * the 6 drivetrain motors. Used for both autonomous and driver control functions
  */
 void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
-	driveLeft.move_velocity(6*(forward_vel+turn_vel));
-	driveRight.move_velocity(6*(forward_vel-turn_vel));
+	driveLeft.move_velocity(5*(forward_vel+turn_vel));
+	driveRight.move_velocity(5*(forward_vel-turn_vel));
 }
 
 /**
