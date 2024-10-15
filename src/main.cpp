@@ -22,6 +22,9 @@ pros::Motor driveRT(18,pros::E_MOTOR_GEARSET_06, true);
 
 pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
 
+//assigning rotational sensor
+pros::Rotation driftwheel (10);
+
 /**
  * The main drive function is the main function to control the drivetrain, it
  * takes a few variables and does some math and assigns velocities to each of
@@ -31,6 +34,48 @@ void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
 	driveLeft.move_velocity(5*(forward_vel+turn_vel));
 	driveRight.move_velocity(5*(forward_vel-turn_vel));
 }
+
+/**
+ * postracking is the core for all of the position tracking functions on the robot.
+ * While easily accessable from 
+ */
+class postracking {
+	//public section specifically for public variables
+	public:
+		//stucture for all of the position values
+		struct position {
+			double xPos = 0;
+			double yPos = 0;
+			double theta = 0;
+		} pos;
+	//private holds all of the functions and variables that does not need to be called outside of the class
+	private:
+		//create a structure for each motor, listing its last value and delta value
+		struct motordata {
+			double last = 0;
+			double delta = 0;
+			
+		} leftENC, rightENC, driftSEN;
+
+		//function that updates the last and delta values for each motor
+		void updatemotorvalues() {
+			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
+			leftENC.last = driveLB.get_position();
+			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
+			rightENC.last = driveRB.get_position();
+			driftSEN.delta = driftwheel.get_position() - rightENC.last; //drift sensor
+			driftSEN.last = driftwheel.get_position();
+		}
+
+	//public section that holds functions called outside of the class
+	public:
+		//functions 
+		void updatepos() {
+			updatemotorvalues();
+
+		}
+
+};
 
 /**
  * A callback function for LLEMU's center button.
