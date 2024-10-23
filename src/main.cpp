@@ -10,9 +10,9 @@ int drivetrainTurnGoverner = 2;
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 //Creating the drivetrain motors and assigning their groups
-pros::Motor driveLF(11,pros::E_MOTOR_GEARSET_06, true);
-pros::Motor driveLB(12,pros::E_MOTOR_GEARSET_06, true);
-pros::Motor driveLT(13,pros::E_MOTOR_GEARSET_06, false);
+pros::Motor driveLF(15,pros::E_MOTOR_GEARSET_06, true);
+pros::Motor driveLB(16,pros::E_MOTOR_GEARSET_06, true);
+pros::Motor driveLT(17,pros::E_MOTOR_GEARSET_06, false);
 
 pros::Motor_Group driveLeft ({driveLF,driveLB,driveLT});
 
@@ -22,8 +22,14 @@ pros::Motor driveRT(18,pros::E_MOTOR_GEARSET_06, true);
 
 pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
 
-//assigning rotational sensor
-pros::Rotation driftwheel (10);
+//assigning other motors
+pros::Motor intake(1,pros::E_MOTOR_GEARSET_06,false);
+pros::Motor wallstake(2,pros::E_MOTOR_GEARSET_18,false);
+
+//assigning sensors
+pros::IMU inertial (10);
+pros::GPS gps (11);
+pros::Vision vision (12);
 
 /**
  * The main drive function is the main function to control the drivetrain, it
@@ -47,31 +53,37 @@ class postracking {
 			double xPos = 0;
 			double yPos = 0;
 			double theta = 0;
-		} pos;
+		} current,last;
 	//private holds all of the functions and variables that does not need to be called outside of the class
 	private:
+		//extra values needed for position tracking
+		double zero1;
+
 		//create a structure for each motor, listing its last value and delta value
-		struct motordata {
+		struct extradata {
 			double last = 0;
 			double delta = 0;
 			
-		} leftENC, rightENC, driftSEN;
+		} leftENC, rightENC, theta;
 
 		//function that updates the last and delta values for each motor
-		void updatemotorvalues() {
+		void updaterawvalues() {
 			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
 			leftENC.last = driveLB.get_position();
 			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
 			rightENC.last = driveRB.get_position();
-			driftSEN.delta = driftwheel.get_position() - rightENC.last; //drift sensor
-			driftSEN.last = driftwheel.get_position();
+			theta.delta = inertial.get_heading() - theta.last;
+			theta.last = inertial.get_heading();
 		}
 
 	//public section that holds functions called outside of the class
 	public:
 		//functions 
 		void updatepos() {
-			updatemotorvalues();
+
+			//update the motor values
+			updaterawvalues();
+
 
 		}
 
