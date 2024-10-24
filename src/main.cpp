@@ -3,16 +3,19 @@
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 
+#define PI 3.14159265
+
 //tuneable values for certain systems
 int drivetrainTurnGoverner = 2;
+double ENCadjustment = 1;
 
 //assigning the master controller
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 //Creating the drivetrain motors and assigning their groups
-pros::Motor driveLF(15,pros::E_MOTOR_GEARSET_06, true);
+pros::Motor driveLF(17,pros::E_MOTOR_GEARSET_06, true);
 pros::Motor driveLB(16,pros::E_MOTOR_GEARSET_06, true);
-pros::Motor driveLT(17,pros::E_MOTOR_GEARSET_06, false);
+pros::Motor driveLT(15,pros::E_MOTOR_GEARSET_06, false);
 
 pros::Motor_Group driveLeft ({driveLF,driveLB,driveLT});
 
@@ -23,11 +26,11 @@ pros::Motor driveRT(18,pros::E_MOTOR_GEARSET_06, true);
 pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
 
 //assigning other motors
-pros::Motor intake(1,pros::E_MOTOR_GEARSET_06,false);
+pros::Motor intake(14,pros::E_MOTOR_GEARSET_06,false);
 pros::Motor wallstake(2,pros::E_MOTOR_GEARSET_18,false);
 
 //assigning sensors
-pros::IMU inertial (10);
+pros::IMU inertial (13);
 pros::GPS gps (11);
 pros::Vision vision (12);
 
@@ -53,36 +56,71 @@ class postracking {
 			double xPos = 0;
 			double yPos = 0;
 			double theta = 0;
-		} current,last;
+		} current,last,gpsS;
+
+		//finding out if the GPS will be enabled
+		bool gpsEnabled = true;
+		//function to toggle to GPS on and off
+		void toggleGPS() {
+			if (gpsEnabled) {
+				gpsEnabled = false;
+			} else {gpsEnabled = true;}
+		}
+
+		//extra values for position tracking and autonomous function
+		double totaldistance;
+
 	//private holds all of the functions and variables that does not need to be called outside of the class
 	private:
-		//extra values needed for position tracking
-		double zero1;
-
 		//create a structure for each motor, listing its last value and delta value
 		struct extradata {
 			double last = 0;
 			double delta = 0;
 			
-		} leftENC, rightENC, theta;
+		} leftENC, rightENC, thetaIMU;
+
+		//extra values for position tracking and autonomous function
+		double distance;
 
 		//function that updates the last and delta values for each motor
-		void updaterawvalues() {
+		void updatevalues() {
 			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
 			leftENC.last = driveLB.get_position();
 			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
 			rightENC.last = driveRB.get_position();
-			theta.delta = inertial.get_heading() - theta.last;
-			theta.last = inertial.get_heading();
+			thetaIMU.delta = inertial.get_heading() - thetaIMU.last;
+			thetaIMU.last = inertial.get_heading();
+			//if the gps is enabled, add those values as well
+			if (gpsEnabled) {
+				gpsS.theta = gps.get_heading();
+				gpsS.xPos = gps.get_x_position();
+				gpsS.yPos = gps.get_y_position();
+			}
+		}
+
+		//outdates some values, and sets them as last values	
+		void outdatevalues() {
+			last.xPos = current.xPos;
+			last.yPos = current.yPos;
+			last.theta = current.theta;
 		}
 
 	//public section that holds functions called outside of the class
 	public:
 		//functions 
 		void updatepos() {
-
+			//get the theta
+			current.theta = inertial.get_heading();
+			//older values are placed here
+			outdatevalues();
+			//calculated total change in distance
+			distance = (((driveLB.get_position()/ENCadjustment)-leftENC.last)+((driveRB.get_position()/ENCadjustment)-rightENC.last))/2;
+			totaldistance += distance;
+			//getting the x and y value
+			current.xPos += distance*(cos((current.theta*PI)/180));
+			current.yPos += distance*(sin((current.theta*PI)/180));
 			//update the motor values
-			updaterawvalues();
+			updatevalues();
 
 
 		}
