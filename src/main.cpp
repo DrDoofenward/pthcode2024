@@ -44,6 +44,13 @@ void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
 	driveRight.move_velocity(5*(forward_vel-turn_vel));
 }
 
+//core function to move the intake, has 2 variables to control it much like assignDrivetrainVelocity
+void moveIntake(bool reverse, int velocity) {
+	if (reverse) { intake.move_velocity(velocity*-5);
+	} else { intake.move_velocity(velocity*5);}
+}
+
+
 /**
  * postracking is the core for all of the position tracking functions on the robot.
  * While easily accessable from 
