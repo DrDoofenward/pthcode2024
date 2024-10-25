@@ -29,6 +29,9 @@ pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
 pros::Motor intake(14,pros::E_MOTOR_GEARSET_06,false);
 pros::Motor wallstake(2,pros::E_MOTOR_GEARSET_18,false);
 
+//assigning pneumatics
+pros::ADIAnalogOut mogoMech (1);
+
 //assigning sensors
 pros::IMU inertial (13);
 pros::GPS gps (11);
@@ -50,6 +53,11 @@ void moveIntake(bool reverse, int velocity) {
 	} else { intake.move_velocity(velocity*5);}
 }
 
+//toggle to toggle the mogo mech on and off
+void toggleMogoMech(bool toggled) {
+	if (toggled) { mogoMech.set_value(true) ;
+	} else { mogoMech.set_value(false); }
+}
 
 /**
  * postracking is the core for all of the position tracking functions on the robot.
