@@ -1,5 +1,7 @@
 #include "main.h"
 #include "pros/imu.h"
+#include "pros/llemu.hpp"
+#include "pros/misc.h"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 
@@ -26,11 +28,11 @@ pros::Motor driveRT(18,pros::E_MOTOR_GEARSET_06, true);
 pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
 
 //assigning other motors
-pros::Motor intake(14,pros::E_MOTOR_GEARSET_06,false);
+pros::Motor intake(14,pros::E_MOTOR_GEARSET_06,true);
 pros::Motor wallstake(2,pros::E_MOTOR_GEARSET_18,false);
 
 //assigning pneumatics
-pros::ADIAnalogOut mogoMech (1);
+pros::ADIDigitalOut mogoMech ('B');
 
 //assigning sensors
 pros::IMU inertial (13);
@@ -53,11 +55,26 @@ void moveIntake(bool reverse, int velocity) {
 	} else { intake.move_velocity(velocity*5);}
 }
 
-//toggle to toggle the mogo mech on and off
-void toggleMogoMech(bool toggled) {
-	if (toggled) { mogoMech.set_value(true) ;
-	} else { mogoMech.set_value(false); }
-}
+class mogoSystem {
+	private:
+		//internal variable for toggling the mogo
+		bool mogoToggled = false;
+
+	public:
+		//toggle to toggle the mogo mech on and off
+		void toggle() {
+			if (mogoToggled) { 
+				mogoMech.set_value(false);
+				mogoToggled = false;
+			} else { 
+				mogoMech.set_value(true);
+				mogoToggled = true; }
+		}
+
+};
+
+mogoSystem mogo;
+
 
 /**
  * postracking is the core for all of the position tracking functions on the robot.
@@ -222,7 +239,11 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
+	//initialize the controller
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
+
+	//initialize any driver control values
+	bool mogoPressing = false;
 
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
@@ -238,6 +259,21 @@ void opcontrol() {
 		int forwardVel = master.get_analog(ANALOG_LEFT_Y);
 		assignDrivetrainVelocity(forwardVel, turnVel);
 		
+		//driver control intake integration
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+			moveIntake(false, 500);
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L2)) {
+			moveIntake(true, 500);
+		}else {moveIntake(false, 0);}
+
+		//driver control mogo mech integration
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) && (mogoPressing == false)) {
+			mogoPressing = true;
+			mogo.toggle();
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) == false) {
+			mogoPressing = false;
+		}
+
 
 		pros::delay(20);
 	}
