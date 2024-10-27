@@ -1,5 +1,4 @@
 #include "main.h"
-#include "pros/imu.h"
 #include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
@@ -39,15 +38,7 @@ pros::IMU inertial (13);
 pros::GPS gps (11);
 pros::Vision vision (12);
 
-/**
- * The main drive function is the main function to control the drivetrain, it
- * takes a few variables and does some math and assigns velocities to each of
- * the 6 drivetrain motors. Used for both autonomous and driver control functions
- */
-void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
-	driveLeft.move_velocity(5*(forward_vel+turn_vel));
-	driveRight.move_velocity(5*(forward_vel-turn_vel));
-}
+
 
 //core function to move the intake, has 2 variables to control it much like assignDrivetrainVelocity
 void moveIntake(bool reverse, int velocity) {
@@ -160,6 +151,40 @@ class postracking {
 };
 
 /**
+ * The drivetrain class holds all functions that directly affiliate with control
+ * of the drivetrain, wether its both autonomous or driver control. 
+ */
+class drivetrainf {
+	//all functions that are needed to be called will be placed in the public space
+	public:
+		/**
+ 		* The main drive function is the main function to control the drivetrain, it
+ 		* takes a few variables and does some math and assigns velocities to each of
+ 		* the 6 drivetrain motors. Used for both autonomous and driver control functions
+ 		*/
+		void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
+			driveLeft.move_velocity(5*(forward_vel+turn_vel));
+			driveRight.move_velocity(5*(forward_vel-turn_vel));
+		}
+
+		//placeholder for a turntoheading
+		void turnToHeading() {};
+
+		//placeholder for a moveforward
+		void moveDistance() {};
+
+		//placeholder for a gotocoordinate
+		void goToCoordinatePre() {};
+
+		void goToCoordinateSpe() {};
+
+		
+};
+
+//assigns a nickname to the drive
+drivetrainf drive;
+
+/**
  * A callback function for LLEMU's center button.
  *
  * When this callback is fired, it will toggle line 2 of the LCD text between
@@ -194,7 +219,8 @@ void initialize() {
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-void disabled() {}
+void disabled() {
+}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
@@ -257,7 +283,7 @@ void opcontrol() {
 		//finding the joystick value and assigning velocities to the motors
 		int turnVel = (master.get_analog(ANALOG_LEFT_X))/drivetrainTurnGoverner;
 		int forwardVel = master.get_analog(ANALOG_LEFT_Y);
-		assignDrivetrainVelocity(forwardVel, turnVel);
+		drive.assignDrivetrainVelocity(forwardVel, turnVel);
 		
 		//driver control intake integration
 		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
