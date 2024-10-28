@@ -3,12 +3,14 @@
 #include "pros/misc.h"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
+#include <cmath>
+#include <cstdio>
 
 #define PI 3.14159265
 
 //tuneable values for certain systems
 int drivetrainTurnGoverner = 2;
-double ENCadjustment = 1;
+double ENCadjustment = 37.5;
 
 //assigning the master controller
 pros::Controller master(pros::E_CONTROLLER_MASTER);
@@ -113,6 +115,7 @@ class postracking {
 			rightENC.last = driveRB.get_position();
 			thetaIMU.delta = inertial.get_heading() - thetaIMU.last;
 			thetaIMU.last = inertial.get_heading();
+			
 			//if the gps is enabled, add those values as well
 			if (gpsEnabled) {
 				gpsS.theta = gps.get_heading();
@@ -137,13 +140,29 @@ class postracking {
 			//older values are placed here
 			outdatevalues();
 			//calculated total change in distance
-			distance = (((driveLB.get_position()/ENCadjustment)-leftENC.last)+((driveRB.get_position()/ENCadjustment)-rightENC.last))/2;
+			distance = ((((driveLB.get_position())-leftENC.last)+((driveRB.get_position())-rightENC.last))/2)/ENCadjustment;
 			totaldistance += distance;
 			//getting the x and y value
 			current.xPos += distance*(cos((current.theta*PI)/180));
 			current.yPos += distance*(sin((current.theta*PI)/180));
 			//accounting for drift
-			pros::c::imu_accel_s_t accel = inertial.get_accel();
+			pros::c::imu_accel_s_t stats = inertial.get_accel();
+
+			current.yPos += 
+			//position values
+			pros::lcd::print(3, "x position: %f", current.xPos);
+			pros::lcd::print(4, "y position: %f", current.yPos);
+			pros::lcd::print(5, "drift: %f", stats.x);
+			pros::lcd::print(6, "theta: %f", current.theta);
+			//deal with NAN's
+			//X Nan
+			if (std::isnan(current.xPos)) {
+				current.xPos = 0;
+				pros::lcd::print(3, "X is NAN"); }
+			//Y Nan
+			if (std::isnan(current.yPos)) {
+				current.yPos = 0;
+				pros::lcd::print(4, "Y is NAN"); }
 			//update the motor values
 			updatevalues();
 
@@ -151,6 +170,17 @@ class postracking {
 		}
 
 };
+
+//creating a task function for running the position system
+postracking posTracking;
+void activatePositionTracking() {
+	while (inertial.is_calibrating() == false) {
+		while (true) {
+			posTracking.updatepos();
+			pros::delay(20);
+		}
+	}
+}
 
 /**
  * The drivetrain class holds all functions that directly affiliate with control
@@ -214,6 +244,8 @@ void initialize() {
 
 	pros::lcd::register_btn1_cb(on_center_button);
 	
+	//initiate position tracking
+	pros::Task realPosition(activatePositionTracking);
 }
 
 /**
