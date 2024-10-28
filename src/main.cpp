@@ -100,7 +100,7 @@ class postracking {
 			double last = 0;
 			double delta = 0;
 			
-		} leftENC, rightENC, thetaIMU;
+		} leftENC, rightENC, drift, thetaIMU;
 
 		//extra values for position tracking and autonomous function
 		double distance;
@@ -142,6 +142,8 @@ class postracking {
 			//getting the x and y value
 			current.xPos += distance*(cos((current.theta*PI)/180));
 			current.yPos += distance*(sin((current.theta*PI)/180));
+			//accounting for drift
+			pros::c::imu_accel_s_t accel = inertial.get_accel();
 			//update the motor values
 			updatevalues();
 
