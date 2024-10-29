@@ -3,8 +3,8 @@
 #include "pros/misc.h"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
+#include "pros/rtos.hpp"
 #include <cmath>
-#include <cstdio>
 
 #define PI 3.14159265
 
@@ -83,6 +83,9 @@ class postracking {
 			double theta = 0;
 		} current,last,gpsS;
 
+		//drift offset value
+		// double driftOffSet;
+
 		//finding out if the GPS will be enabled
 		bool gpsEnabled = true;
 		//function to toggle to GPS on and off
@@ -102,20 +105,23 @@ class postracking {
 			double last = 0;
 			double delta = 0;
 			
-		} leftENC, rightENC, drift, thetaIMU;
+		} leftENC, rightENC, thetaIMU;
 
 		//extra values for position tracking and autonomous function
 		double distance;
+		//double driftIMU;
 
 		//function that updates the last and delta values for each motor
 		void updatevalues() {
+			//motors
 			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
 			leftENC.last = driveLB.get_position();
 			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
 			rightENC.last = driveRB.get_position();
-			thetaIMU.delta = inertial.get_heading() - thetaIMU.last;
+			//inertial
+			thetaIMU.delta = inertial.get_heading() - thetaIMU.last; //rotation
 			thetaIMU.last = inertial.get_heading();
-			
+
 			//if the gps is enabled, add those values as well
 			if (gpsEnabled) {
 				gpsS.theta = gps.get_heading();
@@ -129,6 +135,7 @@ class postracking {
 			last.xPos = current.xPos;
 			last.yPos = current.yPos;
 			last.theta = current.theta;
+			
 		}
 
 	//public section that holds functions called outside of the class
@@ -137,6 +144,8 @@ class postracking {
 		void updatepos() {
 			//get the theta
 			current.theta = inertial.get_heading();
+			//get the drift
+			// driftIMU = inertial.get_accel().x;
 			//older values are placed here
 			outdatevalues();
 			//calculated total change in distance
@@ -146,21 +155,21 @@ class postracking {
 			current.xPos += distance*(cos((current.theta*PI)/180));
 			current.yPos += distance*(sin((current.theta*PI)/180));
 			//accounting for drift
-			pros::c::imu_accel_s_t stats = inertial.get_accel();
-
-			current.yPos += 
+			// current.xPos += driftIMU*(cos(((current.theta+90)*PI)/180));
+			// current.yPos += driftIMU*(sin(((current.theta+90)*PI)/180));
+			
 			//position values
 			pros::lcd::print(3, "x position: %f", current.xPos);
 			pros::lcd::print(4, "y position: %f", current.yPos);
-			pros::lcd::print(5, "drift: %f", stats.x);
+			pros::lcd::print(5, "drift offset unavailable");
 			pros::lcd::print(6, "theta: %f", current.theta);
 			//deal with NAN's
 			//X Nan
-			if (std::isnan(current.xPos)) {
+			if ((std::isnan(current.xPos)) || (std::isinf(current.xPos)) ) {
 				current.xPos = 0;
 				pros::lcd::print(3, "X is NAN"); }
 			//Y Nan
-			if (std::isnan(current.yPos)) {
+			if ((std::isnan(current.yPos)) || (std::isinf(current.yPos))) {
 				current.yPos = 0;
 				pros::lcd::print(4, "Y is NAN"); }
 			//update the motor values
@@ -174,11 +183,13 @@ class postracking {
 //creating a task function for running the position system
 postracking posTracking;
 void activatePositionTracking() {
-	while (inertial.is_calibrating() == false) {
-		while (true) {
-			posTracking.updatepos();
-			pros::delay(20);
-		}
+	while (inertial.is_calibrating()) {
+		pros::delay(20);
+	}
+	// posTracking.driftOffSet = inertial.get_accel().x;
+	while (true) {
+		posTracking.updatepos();
+		pros::delay(20);
 	}
 }
 
@@ -245,6 +256,7 @@ void initialize() {
 	pros::lcd::register_btn1_cb(on_center_button);
 	
 	//initiate position tracking
+	pros::delay(500);
 	pros::Task realPosition(activatePositionTracking);
 }
 
