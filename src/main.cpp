@@ -80,6 +80,7 @@ class PIDSystem {
 		//variables stored for the loop
 		double previous_error = 0;
 		double integral = 0;
+		double integral_limit = 50;
 
 	//functions for the system are stored here
 	public:
@@ -91,6 +92,9 @@ class PIDSystem {
     
     		//integral equation
     		integral += error;
+			//if integral error gets too large, change it to the max (prevents windup)
+			if (integral > integral_limit) integral = integral_limit;
+    		if (integral < -integral_limit) integral = -integral_limit;
     		double integral_part = integral * kI;
     
     		//derivative equation
@@ -209,8 +213,7 @@ class postracking {
 			//position values
 			pros::lcd::print(3, "x position: %f", current.xPos);
 			pros::lcd::print(4, "y position: %f", current.yPos);
-			pros::lcd::print(5, "drift offset unavailable");
-			pros::lcd::print(6, "theta: %f", current.theta);
+			pros::lcd::print(5, "theta: %f", current.theta);
 			//deal with NAN's
 			//X Nan
 			if ((std::isnan(current.xPos)) || (std::isinf(current.xPos)) ) {
@@ -248,9 +251,9 @@ void activatePositionTracking() {
 class drivetrainf {
 	private:
 		//PID values for turning
-		double TkP = 0.1;
-		double TkI = 0.1;
-		double TkD = 0.1;
+		double TkP = 0.5;
+		double TkI = 0.04;
+		double TkD = 0.3;
 
 
 	//all functions that are needed to be called will be placed in the public space
@@ -265,21 +268,28 @@ class drivetrainf {
 			driveRight.move_velocity(5*(forward_vel-turn_vel));
 		}
 
-		//placeholder for a turntoheading
+		//turntoheading is used to 
 		void turnToHeading(double heading) {
+			int passlimit = 3;
 			//while statement that runs til heading is accurate to about 1 degree of error
-			while (((posTracking.current.theta >= heading-1) && (posTracking.current.theta <= heading+1))==false) {
+			while (passlimit > 0) {
 				//run the pid loop
 				double velocity = PID.PID(heading, posTracking.current.theta, TkP, TkI, TkD);
 				//assign drive velocity
 				assignDrivetrainVelocity(0, velocity);
+				//if make it to assigned heading more then 3 times, let it pass
+				if ((posTracking.current.theta >= heading-0.3) && (posTracking.current.theta <= heading+0.3)) {
+					passlimit -= 1;
+				}
 				//delay for no overflow
 				pros::delay(20);
 			}
+			assignDrivetrainVelocity(0, 0);
+			PID.resetvariables();
 		};
 
 		//placeholder for a moveforward
-		void moveDistance() {};
+		void moveDistanceL() {};
 
 		//placeholder for a gotocoordinate
 		void goToCoordinatePre() {};
@@ -360,6 +370,8 @@ void autonomous() {
 	//tune the drivetrain values
 	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
+
+	drive.turnToHeading(90);
 }
 
 /**
