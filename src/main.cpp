@@ -86,7 +86,15 @@ class PIDSystem {
 	public:
  		double PID(double target, double current, double kP, double kI, double kD) {
     		double error = target - current;
-    
+			
+			//if statements for fixing zero turns
+			if (error > 180) {
+   				error -= 360;
+			}
+			if (error < -180) {
+   				error += 360;
+			}
+
     		//proportional equation
     		double proportional = error * kP;
     
@@ -271,6 +279,7 @@ class drivetrainf {
 		//turntoheading is used to 
 		void turnToHeading(double heading) {
 			int passlimit = 3;
+			
 			//while statement that runs til heading is accurate to about 1 degree of error
 			while (passlimit > 0) {
 				//run the pid loop
@@ -371,7 +380,7 @@ void autonomous() {
 	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 
-	drive.turnToHeading(90);
+	drive.turnToHeading(250);
 }
 
 /**
