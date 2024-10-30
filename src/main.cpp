@@ -84,15 +84,17 @@ class PIDSystem {
 
 	//functions for the system are stored here
 	public:
- 		double PID(double target, double current, double kP, double kI, double kD) {
+ 		double PID(double target, double current, double kP, double kI, double kD, bool turning) {
     		double error = target - current;
-			
-			//if statements for fixing zero turns
-			if (error > 180) {
-   				error -= 360;
-			}
-			if (error < -180) {
-   				error += 360;
+
+			//if statements for fixing zero turns (for turning)
+			if (turning == true) {
+				if (error > 180) {
+   					error -= 360;
+				}
+				if (error < -180) {
+   					error += 360;
+				}
 			}
 
     		//proportional equation
@@ -283,7 +285,7 @@ class drivetrainf {
 			//while statement that runs til heading is accurate to about 1 degree of error
 			while (passlimit > 0) {
 				//run the pid loop
-				double velocity = PID.PID(heading, posTracking.current.theta, TkP, TkI, TkD);
+				double velocity = PID.PID(heading, posTracking.current.theta, TkP, TkI, TkD, true);
 				//assign drive velocity
 				assignDrivetrainVelocity(0, velocity);
 				//if make it to assigned heading more then 3 times, let it pass
