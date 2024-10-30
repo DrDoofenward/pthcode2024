@@ -68,6 +68,54 @@ class mogoSystem {
 
 mogoSystem mogo;
 
+/** PID SYSTEM
+ * PID, or Proportional, Integral, Derivative, is a feedback controller that uses
+ * past, present, and future error to determine how much and how quickly to correct
+ * a process, the controller uses three times, P, I, and D, that are equivilant to
+ * magnitude, duration, and rate of change of the error. 
+ */
+class PIDSystem {
+
+	private:
+		//variables stored for the loop
+		double previous_error = 0;
+		double integral = 0;
+
+	//functions for the system are stored here
+	public:
+ 		double PID(double target, double current, double kP, double kI, double kD) {
+    		double error = target - current;
+    
+    		//proportional equation
+    		double proportional = error * kP;
+    
+    		//integral equation
+    		integral += error;
+    		double integral_part = integral * kI;
+    
+    		//derivative equation
+    		double derivative = (error - previous_error) * kD;
+    		previous_error = error;
+    
+    		//combine the numbers and return the output
+			
+			/*take together the proportional and the derivative then smash together those
+			 *two different expressions with inertial to create and push out an added number
+			 * 想像上のテクニック: 出力
+			 */
+    		double output = proportional + integral_part + derivative;
+    
+    		return output;
+		}
+
+		//small function for reseting the loop for reusability
+		void resetvariables() {
+			previous_error = 0;
+			integral = 0;
+		}
+};
+PIDSystem PID;
+
 
 /**
  * postracking is the core for all of the position tracking functions on the robot.
@@ -198,6 +246,13 @@ void activatePositionTracking() {
  * of the drivetrain, wether its both autonomous or driver control. 
  */
 class drivetrainf {
+	private:
+		//PID values for turning
+		double TkP = 0.1;
+		double TkI = 0.1;
+		double TkD = 0.1;
+
+
 	//all functions that are needed to be called will be placed in the public space
 	public:
 		/**
@@ -211,7 +266,17 @@ class drivetrainf {
 		}
 
 		//placeholder for a turntoheading
-		void turnToHeading() {};
+		void turnToHeading(double heading) {
+			//while statement that runs til heading is accurate to about 1 degree of error
+			while (((posTracking.current.theta >= heading-1) && (posTracking.current.theta <= heading+1))==false) {
+				//run the pid loop
+				double velocity = PID.PID(heading, posTracking.current.theta, TkP, TkI, TkD);
+				//assign drive velocity
+				assignDrivetrainVelocity(0, velocity);
+				//delay for no overflow
+				pros::delay(20);
+			}
+		};
 
 		//placeholder for a moveforward
 		void moveDistance() {};
