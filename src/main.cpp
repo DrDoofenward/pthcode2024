@@ -77,39 +77,84 @@ mogoSystem mogo;
 class PIDSystem {
 
 	private:
+
+		//TURNING
 		//variables stored for the loop
-		double previous_error = 0;
-		double integral = 0;
-		double integral_limit = 50;
+		double Tprevious_error = 0;
+		double Tintegral = 0;
+		double Tintegral_limit = 50;
+
+		//PID values for turning
+		double TkP = 0.5;
+		double TkI = 0.04;
+		double TkD = 0.2;
+
+		//DISTANCE PID
+		//variables stored for the loop
+		double Dprevious_error = 0;
+		double Dintegral = 0;
+		double Dintegral_limit = 50;
+
+		//PID values for turning
+		double DkP = 5;
+		double DkI = 0;
+		double DkD = 3;
 
 	//functions for the system are stored here
 	public:
- 		double PID(double target, double current, double kP, double kI, double kD, bool turning) {
+ 		double distancePID(double target, double current) {
+    		double error = target - current;
+			pros::lcd::print(6, "error: %f", error);
+
+    		//proportional equation
+    		double proportional = error * DkP;
+    
+    		//integral equation
+    		Dintegral += error;
+			//if integral error gets too large, change it to the max (prevents windup)
+			if (Dintegral > Dintegral_limit) Dintegral = Dintegral_limit;
+    		if (Dintegral < -Dintegral_limit) Dintegral = -Dintegral_limit;
+    		double integral_part = Dintegral * DkI;
+    
+    		//derivative equation
+    		double derivative = (error - Dprevious_error) * DkD;
+    		Dprevious_error = error;
+    
+    		//combine the numbers and return the output
+			
+			/*take together the proportional and the derivative then smash together those
+			 *two different expressions with inertial to create and push out an added number
+			 * 想像上のテクニック: 出力
+			 */
+    		double output = proportional + integral_part + derivative;
+    
+    		return output;
+		}
+
+		double turnPID(double target, double current) {
     		double error = target - current;
 
 			//if statements for fixing zero turns (for turning)
-			if (turning == true) {
-				if (error > 180) {
-   					error -= 360;
-				}
-				if (error < -180) {
-   					error += 360;
-				}
+			if (error > 180) {
+   				error -= 360;
+			}
+			if (error < -180) {
+   				error += 360;
 			}
 
     		//proportional equation
-    		double proportional = error * kP;
+    		double proportional = error * TkP;
     
     		//integral equation
-    		integral += error;
+    		Tintegral += error;
 			//if integral error gets too large, change it to the max (prevents windup)
-			if (integral > integral_limit) integral = integral_limit;
-    		if (integral < -integral_limit) integral = -integral_limit;
-    		double integral_part = integral * kI;
+			if (Tintegral > Tintegral_limit) Tintegral = Tintegral_limit;
+    		if (Tintegral < -Tintegral_limit) Tintegral = -Tintegral_limit;
+    		double integral_part = Tintegral * TkI;
     
     		//derivative equation
-    		double derivative = (error - previous_error) * kD;
-    		previous_error = error;
+    		double derivative = (error - Tprevious_error) * TkD;
+    		Tprevious_error = error;
     
     		//combine the numbers and return the output
 			
@@ -124,8 +169,10 @@ class PIDSystem {
 
 		//small function for reseting the loop for reusability
 		void resetvariables() {
-			previous_error = 0;
-			integral = 0;
+			Tprevious_error = 0;
+			Tintegral = 0;
+			Dprevious_error = 0;
+			Dintegral = 0;
 		}
 };
 PIDSystem PID;
@@ -260,10 +307,6 @@ void activatePositionTracking() {
  */
 class drivetrainf {
 	private:
-		//PID values for turning
-		double TkP = 0.5;
-		double TkI = 0.04;
-		double TkD = 0.3;
 
 
 	//all functions that are needed to be called will be placed in the public space
@@ -280,12 +323,12 @@ class drivetrainf {
 
 		//turntoheading is used to 
 		void turnToHeading(double heading) {
-			int passlimit = 3;
+			int passlimit = 1;
 			
 			//while statement that runs til heading is accurate to about 1 degree of error
 			while (passlimit > 0) {
 				//run the pid loop
-				double velocity = PID.PID(heading, posTracking.current.theta, TkP, TkI, TkD, true);
+				double velocity = PID.turnPID(heading, posTracking.current.theta);
 				//assign drive velocity
 				assignDrivetrainVelocity(0, velocity);
 				//if make it to assigned heading more then 3 times, let it pass
@@ -300,7 +343,26 @@ class drivetrainf {
 		};
 
 		//placeholder for a moveforward
-		void moveDistanceL() {};
+		void moveDistanceL(double distance, double heading) {
+			int passlimit = 1;
+			double error = posTracking.totaldistance+distance;
+			//while statement that runs til heading is accurate to about 1 degree of error
+			while (passlimit > 0) {
+				//run the pid loop for both the distance and heading
+				double forwardvelocity = PID.distancePID(error, posTracking.totaldistance);
+				double turnvelocity = PID.turnPID(heading, posTracking.current.theta);
+				//assign drive velocity
+				assignDrivetrainVelocity(forwardvelocity, turnvelocity);
+				//if make it to assigned heading more then 3 times, let it pass
+				if ((error >= posTracking.totaldistance-0.3) && (error <= posTracking.totaldistance+0.3)) {
+					passlimit -= 1;
+				}
+				//delay for no overflow
+				pros::delay(20);
+			}
+			assignDrivetrainVelocity(0, 0);
+			PID.resetvariables();
+		};
 
 		//placeholder for a gotocoordinate
 		void goToCoordinatePre() {};
@@ -382,7 +444,11 @@ void autonomous() {
 	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 
-	drive.turnToHeading(250);
+	drive.moveDistanceL(20, 0);
+	drive.moveDistanceL(-20, 0);
+	drive.moveDistanceL(20, 0);
+	drive.turnToHeading(180);
+	drive.moveDistanceL(20, 180);
 }
 
 /**
