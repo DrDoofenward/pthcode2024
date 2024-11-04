@@ -38,7 +38,7 @@ pros::ADIDigitalOut mogoMech ('B');
 //assigning sensors
 pros::IMU inertial (13);
 pros::GPS gps (11);
-pros::Vision vision (12);
+pros::Vision vision (1);
 
 
 
@@ -96,7 +96,7 @@ class PIDSystem {
 		double Dintegral_limit = 50;
 
 		//PID values for turning
-		double DkP = 5;
+		double DkP = 6;
 		double DkI = 0;
 		double DkD = 3;
 
@@ -381,7 +381,7 @@ class drivetrainf {
 				//assign drive velocity
 				assignDrivetrainVelocity(forwardvelocity, turnvelocity);
 				//if make it to assigned heading more then 3 times, let it pass
-				if ((error >= posTracking.totaldistance-0.3) && (error <= posTracking.totaldistance+0.3)) {
+				if ((error >= posTracking.totaldistance-0.6) && (error <= posTracking.totaldistance+0.6)) {
 					passlimit -= 1;
 				}
 				//delay for no overflow
@@ -469,11 +469,19 @@ void autonomous() {
 	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
 
-	drive.moveDistanceL(20, 0);
-	drive.moveDistanceL(-20, 0);
-	drive.moveDistanceL(20, 0);
-	drive.turnToHeading(180);
-	drive.moveDistanceL(20, 180);
+	drive.moveDistanceL(-22, 356);
+	drive.assignDrivetrainVelocity(-30, 0);
+	pros::delay(600);
+	mogo.toggle();
+	drive.assignDrivetrainVelocity(0, 0);
+	pros::delay(400);
+	//drive.turnToHeading(270);
+	//drive.moveDistanceL(15, 270);
+	moveIntake(false, 500);
+	drive.turnToHeading(160);
+	drive.moveDistanceL(17, 190);
+
+
 }
 
 /**
