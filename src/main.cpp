@@ -464,24 +464,6 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-
-	//tune the drivetrain values
-	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
-	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
-
-	drive.moveDistanceL(-22, 356);
-	drive.assignDrivetrainVelocity(-30, 0);
-	pros::delay(600);
-	mogo.toggle();
-	drive.assignDrivetrainVelocity(0, 0);
-	pros::delay(400);
-	//drive.turnToHeading(270);
-	//drive.moveDistanceL(15, 270);
-	moveIntake(false, 500);
-	drive.turnToHeading(160);
-	drive.moveDistanceL(17, 190);
-
-
 }
 
 /**
