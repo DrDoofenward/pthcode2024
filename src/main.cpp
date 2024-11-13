@@ -8,39 +8,17 @@
 
 #define PI 3.14159265
 
+//including seperate files
+#include "setup.cpp"
+#include "positiontracking.cpp"
+#include "custombraindisplay.cpp"
+
 //tuneable values for certain systems
 int drivetrainTurnGoverner = 2;
 double ENCadjustment = 37.5;
 
-//assigning the master controller
-pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-//Creating the drivetrain motors and assigning their groups
-pros::Motor driveLF(17,pros::E_MOTOR_GEARSET_06, true);
-pros::Motor driveLB(16,pros::E_MOTOR_GEARSET_06, true);
-pros::Motor driveLT(15,pros::E_MOTOR_GEARSET_06, false);
-
-pros::Motor_Group driveLeft ({driveLF,driveLB,driveLT});
-
-pros::Motor driveRF(20,pros::E_MOTOR_GEARSET_06, false);
-pros::Motor driveRB(19,pros::E_MOTOR_GEARSET_06, false);
-pros::Motor driveRT(18,pros::E_MOTOR_GEARSET_06, true);
-
-pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
-
-//assigning other motors
-pros::Motor intake(14,pros::E_MOTOR_GEARSET_06,true);
-pros::Motor wallstake(2,pros::E_MOTOR_GEARSET_18,false);
-
-//assigning pneumatics
-pros::ADIDigitalOut mogoMech ('B');
-
-//assigning sensors
-pros::IMU inertial (13);
-pros::GPS gps (11);
-pros::Vision vision (1);
-
-
+//sensors and motors declared in setup.cpp
 
 //core function to move the intake, has 2 variables to control it much like assignDrivetrainVelocity
 void moveIntake(bool reverse, int velocity) {
@@ -68,114 +46,6 @@ class mogoSystem {
 
 mogoSystem mogo;
 
-/** PID SYSTEM
- * PID, or Proportional, Integral, Derivative, is a feedback controller that uses
- * past, present, and future error to determine how much and how quickly to correct
- * a process, the controller uses three times, P, I, and D, that are equivilant to
- * magnitude, duration, and rate of change of the error. 
- */
-class PIDSystem {
-
-	private:
-
-		//TURNING
-		//variables stored for the loop
-		double Tprevious_error = 0;
-		double Tintegral = 0;
-		double Tintegral_limit = 50;
-
-		//PID values for turning
-		double TkP = 0.5;
-		double TkI = 0.04;
-		double TkD = 0.2;
-
-		//DISTANCE PID
-		//variables stored for the loop
-		double Dprevious_error = 0;
-		double Dintegral = 0;
-		double Dintegral_limit = 50;
-
-		//PID values for turning
-		double DkP = 6;
-		double DkI = 0;
-		double DkD = 3;
-
-	//functions for the system are stored here
-	public:
- 		double distancePID(double target, double current) {
-    		double error = target - current;
-			pros::lcd::print(6, "error: %f", error);
-
-    		//proportional equation
-    		double proportional = error * DkP;
-    
-    		//integral equation
-    		Dintegral += error;
-			//if integral error gets too large, change it to the max (prevents windup)
-			if (Dintegral > Dintegral_limit) Dintegral = Dintegral_limit;
-    		if (Dintegral < -Dintegral_limit) Dintegral = -Dintegral_limit;
-    		double integral_part = Dintegral * DkI;
-    
-    		//derivative equation
-    		double derivative = (error - Dprevious_error) * DkD;
-    		Dprevious_error = error;
-    
-    		//combine the numbers and return the output
-			
-			/*take together the proportional and the derivative then smash together those
-			 *two different expressions with inertial to create and push out an added number
-			 * 想像上のテクニック: 出力
-			 */
-    		double output = proportional + integral_part + derivative;
-    
-    		return output;
-		}
-
-		double turnPID(double target, double current) {
-    		double error = target - current;
-
-			//if statements for fixing zero turns (for turning)
-			if (error > 180) {
-   				error -= 360;
-			}
-			if (error < -180) {
-   				error += 360;
-			}
-
-    		//proportional equation
-    		double proportional = error * TkP;
-    
-    		//integral equation
-    		Tintegral += error;
-			//if integral error gets too large, change it to the max (prevents windup)
-			if (Tintegral > Tintegral_limit) Tintegral = Tintegral_limit;
-    		if (Tintegral < -Tintegral_limit) Tintegral = -Tintegral_limit;
-    		double integral_part = Tintegral * TkI;
-    
-    		//derivative equation
-    		double derivative = (error - Tprevious_error) * TkD;
-    		Tprevious_error = error;
-    
-    		//combine the numbers and return the output
-			
-			/*take together the proportional and the derivative then smash together those
-			 *two different expressions with inertial to create and push out an added number
-			 * 想像上のテクニック: 出力
-			 */
-    		double output = proportional + integral_part + derivative;
-    
-    		return output;
-		}
-
-		//small function for reseting the loop for reusability
-		void resetvariables() {
-			Tprevious_error = 0;
-			Tintegral = 0;
-			Dprevious_error = 0;
-			Dintegral = 0;
-		}
-};
-PIDSystem PID;
 
 
 /**
