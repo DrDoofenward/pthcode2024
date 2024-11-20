@@ -1,5 +1,7 @@
-#include "main.h"
+//positiontracking.cpp is 2nd in the conga line
+#include "setup.cpp"
 
+#define PI 3.14159265
 
 /** PID SYSTEM
  * PID, or Proportional, Integral, Derivative, is a feedback controller that uses
@@ -108,3 +110,126 @@ class PIDSystem {
 		}
 };
 PIDSystem PID;
+
+/**
+ * postracking is the core for all of the position tracking functions on the robot.
+ * While easily accessable from 
+ */
+class postracking {
+	//public section specifically for public variables
+	public:
+		//stucture for all of the position values
+		struct position {
+			double xPos = 0;
+			double yPos = 0;
+			double theta = 0;
+		} current,last,gpsS;
+
+		//drift offset value
+		// double driftOffSet;
+
+		//finding out if the GPS will be enabled
+		bool gpsEnabled = true;
+		//function to toggle to GPS on and off
+		void toggleGPS() {
+			if (gpsEnabled) {
+				gpsEnabled = false;
+			} else {gpsEnabled = true;}
+		}
+
+		//extra values for position tracking and autonomous function
+		double totaldistance;
+
+	//private holds all of the functions and variables that does not need to be called outside of the class
+	private:
+		//create a structure for each motor, listing its last value and delta value
+		struct extradata {
+			double last = 0;
+			double delta = 0;
+			
+		} leftENC, rightENC, thetaIMU;
+
+		//extra values for position tracking and autonomous function
+		double distance;
+		//double driftIMU;
+
+		//function that updates the last and delta values for each motor
+		void updatevalues() {
+			//motors
+			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
+			leftENC.last = driveLB.get_position();
+			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
+			rightENC.last = driveRB.get_position();
+			//inertial
+			thetaIMU.delta = inertial.get_heading() - thetaIMU.last; //rotation
+			thetaIMU.last = inertial.get_heading();
+
+			//if the gps is enabled, add those values as well
+			if (gpsEnabled) {
+				gpsS.theta = gps.get_heading();
+				gpsS.xPos = gps.get_x_position();
+				gpsS.yPos = gps.get_y_position();
+			}
+		}
+
+		//outdates some values, and sets them as last values	
+		void outdatevalues() {
+			last.xPos = current.xPos;
+			last.yPos = current.yPos;
+			last.theta = current.theta;
+			
+		}
+
+	//public section that holds functions called outside of the class
+	public:
+		//functions 
+		void updatepos() {
+			//get the theta
+			current.theta = inertial.get_heading();
+			//get the drift
+			// driftIMU = inertial.get_accel().x;
+			//older values are placed here
+			outdatevalues();
+			//calculated total change in distance
+			distance = ((((driveLB.get_position())-leftENC.last)+((driveRB.get_position())-rightENC.last))/2)/ENCadjustment;
+			totaldistance += distance;
+			//getting the x and y value
+			current.xPos += distance*(cos((current.theta*PI)/180));
+			current.yPos += distance*(sin((current.theta*PI)/180));
+			//accounting for drift
+			// current.xPos += driftIMU*(cos(((current.theta+90)*PI)/180));
+			// current.yPos += driftIMU*(sin(((current.theta+90)*PI)/180));
+			
+			//position values
+			pros::lcd::print(3, "x position: %f", current.xPos);
+			pros::lcd::print(4, "y position: %f", current.yPos);
+			pros::lcd::print(5, "theta: %f", current.theta);
+			//deal with NAN's
+			//X Nan
+			if ((std::isnan(current.xPos)) || (std::isinf(current.xPos)) ) {
+				current.xPos = 0;
+				pros::lcd::print(3, "X is NAN"); }
+			//Y Nan
+			if ((std::isnan(current.yPos)) || (std::isinf(current.yPos))) {
+				current.yPos = 0;
+				pros::lcd::print(4, "Y is NAN"); }
+			//update the motor values
+			updatevalues();
+
+
+		}
+
+};
+
+//creating a task function for running the position system
+postracking posTracking;
+void activatePositionTracking() {
+	while (inertial.is_calibrating()) {
+		pros::delay(20);
+	}
+	// posTracking.driftOffSet = inertial.get_accel().x;
+	while (true) {
+		posTracking.updatepos();
+		pros::delay(20);
+	}
+}

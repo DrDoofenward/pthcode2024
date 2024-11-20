@@ -1,3 +1,4 @@
+//setup is the first file in the conga line, and sets up all of the hardware related functionality
 #include "main.h"
 
 //assigning the master controller
@@ -27,3 +28,7 @@ pros::ADIDigitalOut mogoMech ('B');
 pros::IMU inertial (13);
 pros::GPS gps (11);
 pros::Vision vision (1);
+
+//tuneable values for certain systems
+int drivetrainTurnGoverner = 2;
+double ENCadjustment = 37.5;
