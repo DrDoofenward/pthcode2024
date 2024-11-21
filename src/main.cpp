@@ -147,9 +147,13 @@ drivetrainf drive;
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	//initialize brain sequences
+	pros::Task motortemps(taskTempDisplay);
+
 	//initiate position tracking
 	pros::delay(500);
 	pros::Task realPosition(activatePositionTracking);
+
 }
 
 /**
