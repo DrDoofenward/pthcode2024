@@ -201,18 +201,18 @@ class postracking {
 			// current.yPos += driftIMU*(sin(((current.theta+90)*PI)/180));
 			
 			//position values
-			pros::lcd::print(3, "x position: %f", current.xPos);
-			pros::lcd::print(4, "y position: %f", current.yPos);
-			pros::lcd::print(5, "theta: %f", current.theta);
+			//pros::lcd::print(3, "x position: %f", current.xPos);
+			//pros::lcd::print(4, "y position: %f", current.yPos);
+			//pros::lcd::print(5, "theta: %f", current.theta);							PRINTED POSITION VALUES CUT OUT UNTIL CUSTOM BRAIN DISPLAY IS FINISHED
 			//deal with NAN's
 			//X Nan
 			if ((std::isnan(current.xPos)) || (std::isinf(current.xPos)) ) {
 				current.xPos = 0;
-				pros::lcd::print(3, "X is NAN"); }
+				/*pros::lcd::print(3, "X is NAN");*/ }
 			//Y Nan
 			if ((std::isnan(current.yPos)) || (std::isinf(current.yPos))) {
 				current.yPos = 0;
-				pros::lcd::print(4, "Y is NAN"); }
+				/*pros::lcd::print(4, "Y is NAN");*/ }
 			//update the motor values
 			updatevalues();
 
