@@ -310,7 +310,8 @@
     },
     "upload_options": {
       "description": "0.1.0 As of Last Update",
-      "icon": "pros"
+      "icon": "X",
+      "slot": 6
     },
     "use_early_access": false
   }

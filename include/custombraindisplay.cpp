@@ -1,5 +1,6 @@
 //custombraindisplay is 3rd in the conga line, and holds all functionality for the brain
 #include "positiontracking.cpp"
+//extra included files for the brain
 #include "pros/colors.h"
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
@@ -12,6 +13,34 @@
  * 3. Auton (and team) Selector
  * 4. Display showing the robots position on the field
  */
+
+void drawbackground () {
+pros::screen::set_pen(COLOR_YELLOW);
+pros::screen::draw_rect(0, 0, 480, 240); }
+
+//class for placing a robot on a 2d plane for 
+class positiondisplay {
+    private:
+        //draws another display so it overlaps the old display
+        void drawfield() {
+            //overlaps the old display
+            pros::screen::set_pen(COLOR_GREEN);
+            pros::screen::draw_rect(240, 20, 200, 200);
+            //draws the new display
+            pros::screen::set_pen(COLOR_WHITE);
+            //gotta do dis later
+        }
+
+        //draws a square that represents the robot so we know where the robot believes its positioned
+        void drawrobot() {}
+
+    public:
+        //updates the robots current position
+        void updateposition(double X, double Y, double theta) {}
+};
+
+
+
 
 //sets the pen color relating to where a value lies on a low-high bar
 void setColorStatus(double value, double low, double high, bool inverted) {

@@ -148,6 +148,7 @@ drivetrainf drive;
  */
 void initialize() {
 	//initialize brain sequences
+	drawbackground();
 	pros::Task motortemps(taskTempDisplay);
 
 	//initiate position tracking
