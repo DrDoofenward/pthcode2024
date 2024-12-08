@@ -7,16 +7,6 @@
 #include "pros/screen.hpp"
 #include <string>
 
-/*requirements
- * 1. 8 Text lines for detecting motor temperature
- * 2. Text lines for position tracking
- * 3. Auton (and team) Selector
- * 4. Display showing the robots position on the field
- */
-
-void drawbackground () {
-pros::screen::set_pen(COLOR_YELLOW);
-pros::screen::draw_rect(0, 0, 480, 240); }
 
 //class for placing a robot on a 2d plane for 
 class positiondisplay {
@@ -25,20 +15,25 @@ class positiondisplay {
         void drawfield() {
             //overlaps the old display
             pros::screen::set_pen(COLOR_GREEN);
-            pros::screen::draw_rect(240, 20, 200, 200);
+            pros::screen::fill_rect(240, 20, 200, 200);
             //draws the new display
             pros::screen::set_pen(COLOR_WHITE);
             //gotta do dis later
         }
 
         //draws a square that represents the robot so we know where the robot believes its positioned
-        void drawrobot() {}
-
+        void drawrobot(double X, double Y, double theta) {}
     public:
         //updates the robots current position
-        void updateposition(double X, double Y, double theta) {}
+        void updateposition(double X, double Y, double theta) {
+            //overlay the old field
+            drawfield();
+            //draw the robot in its new position
+            drawrobot(X,Y,theta);
+        }
 };
 
+positiondisplay posDisplay;
 
 
 

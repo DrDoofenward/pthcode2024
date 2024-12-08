@@ -147,9 +147,12 @@ drivetrainf drive;
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	//initial coloring
+	pros::screen::set_pen(COLOR_BLACK);
+	pros::screen::fill_rect(0, 0, 480, 240);
 	//initialize brain sequences
-	drawbackground();
 	pros::Task motortemps(taskTempDisplay);
+	posDisplay.updateposition(0, 0, 0);
 
 	//initiate position tracking
 	pros::delay(500);
