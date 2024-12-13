@@ -1,46 +1,17 @@
 #include "main.h"
-#include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 #include "pros/rtos.hpp"
 #include <cmath>
 
-#define PI 3.14159265
 
-//tuneable values for certain systems
-int drivetrainTurnGoverner = 2;
-double ENCadjustment = 37.5;
-
-//assigning the master controller
-pros::Controller master(pros::E_CONTROLLER_MASTER);
-
-//Creating the drivetrain motors and assigning their groups
-pros::Motor driveLF(17,pros::E_MOTOR_GEARSET_06, true);
-pros::Motor driveLB(16,pros::E_MOTOR_GEARSET_06, true);
-pros::Motor driveLT(15,pros::E_MOTOR_GEARSET_06, false);
-
-pros::Motor_Group driveLeft ({driveLF,driveLB,driveLT});
-
-pros::Motor driveRF(20,pros::E_MOTOR_GEARSET_06, false);
-pros::Motor driveRB(19,pros::E_MOTOR_GEARSET_06, false);
-pros::Motor driveRT(18,pros::E_MOTOR_GEARSET_06, true);
-
-pros::Motor_Group driveRight ({driveRF,driveRB,driveRT});
-
-//assigning other motors
-pros::Motor intake(14,pros::E_MOTOR_GEARSET_06,true);
-pros::Motor wallstake(2,pros::E_MOTOR_GEARSET_18,false);
-
-//assigning pneumatics
-pros::ADIDigitalOut mogoMech ('B');
-
-//assigning sensors
-pros::IMU inertial (13);
-pros::GPS gps (11);
-pros::Vision vision (12);
+//including seperate files in a conga line style
+//main.cpp is the last of the conga line and runs everything
+#include "custombraindisplay.cpp"
 
 
+//sensors and motors declared in setup.cpp
 
 //core function to move the intake, has 2 variables to control it much like assignDrivetrainVelocity
 void moveIntake(bool reverse, int velocity) {
@@ -68,238 +39,6 @@ class mogoSystem {
 
 mogoSystem mogo;
 
-/** PID SYSTEM
- * PID, or Proportional, Integral, Derivative, is a feedback controller that uses
- * past, present, and future error to determine how much and how quickly to correct
- * a process, the controller uses three times, P, I, and D, that are equivilant to
- * magnitude, duration, and rate of change of the error. 
- */
-class PIDSystem {
-
-	private:
-
-		//TURNING
-		//variables stored for the loop
-		double Tprevious_error = 0;
-		double Tintegral = 0;
-		double Tintegral_limit = 50;
-
-		//PID values for turning
-		double TkP = 0.5;
-		double TkI = 0.04;
-		double TkD = 0.2;
-
-		//DISTANCE PID
-		//variables stored for the loop
-		double Dprevious_error = 0;
-		double Dintegral = 0;
-		double Dintegral_limit = 50;
-
-		//PID values for turning
-		double DkP = 5;
-		double DkI = 0;
-		double DkD = 3;
-
-	//functions for the system are stored here
-	public:
- 		double distancePID(double target, double current) {
-    		double error = target - current;
-			pros::lcd::print(6, "error: %f", error);
-
-    		//proportional equation
-    		double proportional = error * DkP;
-    
-    		//integral equation
-    		Dintegral += error;
-			//if integral error gets too large, change it to the max (prevents windup)
-			if (Dintegral > Dintegral_limit) Dintegral = Dintegral_limit;
-    		if (Dintegral < -Dintegral_limit) Dintegral = -Dintegral_limit;
-    		double integral_part = Dintegral * DkI;
-    
-    		//derivative equation
-    		double derivative = (error - Dprevious_error) * DkD;
-    		Dprevious_error = error;
-    
-    		//combine the numbers and return the output
-			
-			/*take together the proportional and the derivative then smash together those
-			 *two different expressions with inertial to create and push out an added number
-			 * 想像上のテクニック: 出力
-			 */
-    		double output = proportional + integral_part + derivative;
-    
-    		return output;
-		}
-
-		double turnPID(double target, double current) {
-    		double error = target - current;
-
-			//if statements for fixing zero turns (for turning)
-			if (error > 180) {
-   				error -= 360;
-			}
-			if (error < -180) {
-   				error += 360;
-			}
-
-    		//proportional equation
-    		double proportional = error * TkP;
-    
-    		//integral equation
-    		Tintegral += error;
-			//if integral error gets too large, change it to the max (prevents windup)
-			if (Tintegral > Tintegral_limit) Tintegral = Tintegral_limit;
-    		if (Tintegral < -Tintegral_limit) Tintegral = -Tintegral_limit;
-    		double integral_part = Tintegral * TkI;
-    
-    		//derivative equation
-    		double derivative = (error - Tprevious_error) * TkD;
-    		Tprevious_error = error;
-    
-    		//combine the numbers and return the output
-			
-			/*take together the proportional and the derivative then smash together those
-			 *two different expressions with inertial to create and push out an added number
-			 * 想像上のテクニック: 出力
-			 */
-    		double output = proportional + integral_part + derivative;
-    
-    		return output;
-		}
-
-		//small function for reseting the loop for reusability
-		void resetvariables() {
-			Tprevious_error = 0;
-			Tintegral = 0;
-			Dprevious_error = 0;
-			Dintegral = 0;
-		}
-};
-PIDSystem PID;
-
-
-/**
- * postracking is the core for all of the position tracking functions on the robot.
- * While easily accessable from 
- */
-class postracking {
-	//public section specifically for public variables
-	public:
-		//stucture for all of the position values
-		struct position {
-			double xPos = 0;
-			double yPos = 0;
-			double theta = 0;
-		} current,last,gpsS;
-
-		//drift offset value
-		// double driftOffSet;
-
-		//finding out if the GPS will be enabled
-		bool gpsEnabled = true;
-		//function to toggle to GPS on and off
-		void toggleGPS() {
-			if (gpsEnabled) {
-				gpsEnabled = false;
-			} else {gpsEnabled = true;}
-		}
-
-		//extra values for position tracking and autonomous function
-		double totaldistance;
-
-	//private holds all of the functions and variables that does not need to be called outside of the class
-	private:
-		//create a structure for each motor, listing its last value and delta value
-		struct extradata {
-			double last = 0;
-			double delta = 0;
-			
-		} leftENC, rightENC, thetaIMU;
-
-		//extra values for position tracking and autonomous function
-		double distance;
-		//double driftIMU;
-
-		//function that updates the last and delta values for each motor
-		void updatevalues() {
-			//motors
-			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
-			leftENC.last = driveLB.get_position();
-			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
-			rightENC.last = driveRB.get_position();
-			//inertial
-			thetaIMU.delta = inertial.get_heading() - thetaIMU.last; //rotation
-			thetaIMU.last = inertial.get_heading();
-
-			//if the gps is enabled, add those values as well
-			if (gpsEnabled) {
-				gpsS.theta = gps.get_heading();
-				gpsS.xPos = gps.get_x_position();
-				gpsS.yPos = gps.get_y_position();
-			}
-		}
-
-		//outdates some values, and sets them as last values	
-		void outdatevalues() {
-			last.xPos = current.xPos;
-			last.yPos = current.yPos;
-			last.theta = current.theta;
-			
-		}
-
-	//public section that holds functions called outside of the class
-	public:
-		//functions 
-		void updatepos() {
-			//get the theta
-			current.theta = inertial.get_heading();
-			//get the drift
-			// driftIMU = inertial.get_accel().x;
-			//older values are placed here
-			outdatevalues();
-			//calculated total change in distance
-			distance = ((((driveLB.get_position())-leftENC.last)+((driveRB.get_position())-rightENC.last))/2)/ENCadjustment;
-			totaldistance += distance;
-			//getting the x and y value
-			current.xPos += distance*(cos((current.theta*PI)/180));
-			current.yPos += distance*(sin((current.theta*PI)/180));
-			//accounting for drift
-			// current.xPos += driftIMU*(cos(((current.theta+90)*PI)/180));
-			// current.yPos += driftIMU*(sin(((current.theta+90)*PI)/180));
-			
-			//position values
-			pros::lcd::print(3, "x position: %f", current.xPos);
-			pros::lcd::print(4, "y position: %f", current.yPos);
-			pros::lcd::print(5, "theta: %f", current.theta);
-			//deal with NAN's
-			//X Nan
-			if ((std::isnan(current.xPos)) || (std::isinf(current.xPos)) ) {
-				current.xPos = 0;
-				pros::lcd::print(3, "X is NAN"); }
-			//Y Nan
-			if ((std::isnan(current.yPos)) || (std::isinf(current.yPos))) {
-				current.yPos = 0;
-				pros::lcd::print(4, "Y is NAN"); }
-			//update the motor values
-			updatevalues();
-
-
-		}
-
-};
-
-//creating a task function for running the position system
-postracking posTracking;
-void activatePositionTracking() {
-	while (inertial.is_calibrating()) {
-		pros::delay(20);
-	}
-	// posTracking.driftOffSet = inertial.get_accel().x;
-	while (true) {
-		posTracking.updatepos();
-		pros::delay(20);
-	}
-}
 
 /**
  * The drivetrain class holds all functions that directly affiliate with control
@@ -381,7 +120,7 @@ class drivetrainf {
 				//assign drive velocity
 				assignDrivetrainVelocity(forwardvelocity, turnvelocity);
 				//if make it to assigned heading more then 3 times, let it pass
-				if ((error >= posTracking.totaldistance-0.3) && (error <= posTracking.totaldistance+0.3)) {
+				if ((error >= posTracking.totaldistance-0.6) && (error <= posTracking.totaldistance+0.6)) {
 					passlimit -= 1;
 				}
 				//delay for no overflow
@@ -400,21 +139,6 @@ class drivetrainf {
 //assigns a nickname to the drive
 drivetrainf drive;
 
-/**
- * A callback function for LLEMU's center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
- */
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
-}
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -423,14 +147,19 @@ void on_center_button() {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+	//wait for robot to finish startup
+	pros::delay(400);
+	//initial coloring
+	pros::screen::set_pen(COLOR_BLACK);
+	pros::screen::fill_rect(0, 0, 480, 240);
+	pros::delay(20);
+	posDisplay.updateposition(0, 0, 0);
+	//initialize brain sequences
+	pros::Task motortemps(taskTempDisplay);
 
-	pros::lcd::register_btn1_cb(on_center_button);
-	
 	//initiate position tracking
-	pros::delay(500);
 	pros::Task realPosition(activatePositionTracking);
+
 }
 
 /**
@@ -464,16 +193,6 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-
-	//tune the drivetrain values
-	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
-	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_BRAKE);
-
-	drive.moveDistanceL(20, 0);
-	drive.moveDistanceL(-20, 0);
-	drive.moveDistanceL(20, 0);
-	drive.turnToHeading(180);
-	drive.moveDistanceL(20, 180);
 }
 
 /**
@@ -497,9 +216,6 @@ void opcontrol() {
 	bool mogoPressing = false;
 
 	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
 
 		//tune the drivetrain values
 		driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_COAST);
