@@ -147,15 +147,17 @@ drivetrainf drive;
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	//wait for robot to finish startup
+	pros::delay(400);
 	//initial coloring
 	pros::screen::set_pen(COLOR_BLACK);
 	pros::screen::fill_rect(0, 0, 480, 240);
+	pros::delay(20);
+	posDisplay.updateposition(0, 0, 0);
 	//initialize brain sequences
 	pros::Task motortemps(taskTempDisplay);
-	posDisplay.updateposition(0, 0, 0);
 
 	//initiate position tracking
-	pros::delay(500);
 	pros::Task realPosition(activatePositionTracking);
 
 }
