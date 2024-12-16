@@ -14,12 +14,12 @@
 //sensors and motors declared in setup.cpp
 
 //core function to move the intake, has 2 variables to control it much like assignDrivetrainVelocity
-void moveIntake(bool reverse, int velocity) {
+void moveIntake(bool reverse, int velocity) {																	//intake system
 	if (reverse) { intake.move_velocity(velocity*-5);
 	} else { intake.move_velocity(velocity*5);}
 }
 
-class mogoSystem {
+class mogoSystem {																								//mogo piston mech system
 	private:
 		//internal variable for toggling the mogo
 		bool mogoToggled = false;
@@ -55,13 +55,13 @@ class drivetrainf {
  		* takes a few variables and does some math and assigns velocities to each of
  		* the 6 drivetrain motors. Used for both autonomous and driver control functions
  		*/
-		void assignDrivetrainVelocity(int forward_vel, int turn_vel) {
+		void assignDrivetrainVelocity(int forward_vel, int turn_vel) {												//assign drive velocity
 			driveLeft.move_velocity(5*(forward_vel+turn_vel));
 			driveRight.move_velocity(5*(forward_vel-turn_vel));
 		}
 
-		//turntoheading is used to 
-		void turnToHeading(double heading) {
+		//turntoheading is used to turn to a specific heading in degrees
+		void turnToHeading(double heading) {																		//turn to heading
 			int passlimit = 1;
 			
 			//while statement that runs til heading is accurate to about 1 degree of error
@@ -82,7 +82,7 @@ class drivetrainf {
 		};
 
 		//placeholder for a moveforward
-		void moveDistanceL(double distance, double heading) {
+		void moveDistanceL(double distance, double heading) {														//move distance (locked)
 			int passlimit = 1;
 			double error = posTracking.totaldistance+distance;
 			//while statement that runs til heading is accurate to about 1 degree of error
@@ -104,7 +104,7 @@ class drivetrainf {
 		};
 
 		//placeholder for a gotocoordinate
-		void goToCoordinatePre(double x, double y) {
+		void goToCoordinatePre(double x, double y) {																//go to a coordinate
 			int passlimit = 1;
 			//do initial turn
 			double heading = (atan2(y-posTracking.current.yPos,x-posTracking.current.xPos)*180/PI);
@@ -146,7 +146,7 @@ drivetrainf drive;
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
-void initialize() {
+void initialize() {																								//built in initialization function
 	//wait for robot to finish startup
 	pros::delay(100);
 	//initial coloring
@@ -165,24 +165,9 @@ void initialize() {
 
 }
 
-/**
- * Runs while the robot is in the disabled state of Field Management System or
- * the VEX Competition Switch, following either autonomous or opcontrol. When
- * the robot is enabled, this task will exit.
- */
-void disabled() {
+//runs while the robot is in the disabled state via the field managment system
+void disabled() {																								//built in disabled function
 }
-
-/**
- * Runs after initialize(), and before autonomous when connected to the Field
- * Management System or the VEX Competition Switch. This is intended for
- * competition-specific initialization routines, such as an autonomous selector
- * on the LCD.
- *
- * This task will exit when the robot is enabled and autonomous or opcontrol
- * starts.
- */
-void competition_initialize() {}
 
 /**
  * Runs the user autonomous code. This function will be started in its own task
@@ -195,7 +180,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {
+void autonomous() {																							//autonomous executor
 
 }
 
@@ -212,7 +197,7 @@ void autonomous() {
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
-void opcontrol() {
+void opcontrol() {																							//driver control executor
 	//initialize the controller
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
 

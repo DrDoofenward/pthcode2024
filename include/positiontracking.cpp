@@ -9,7 +9,7 @@
  * a process, the controller uses three times, P, I, and D, that are equivilant to
  * magnitude, duration, and rate of change of the error. 
  */
-class PIDSystem {
+class PIDSystem {																				//PID system class and tunable values
 
 	private:
 
@@ -37,7 +37,7 @@ class PIDSystem {
 
 	//functions for the system are stored here
 	public:
- 		double distancePID(double target, double current) {
+ 		double distancePID(double target, double current) {										//PID code for forward/backward velocity
     		double error = target - current;
 
     		//proportional equation
@@ -65,7 +65,7 @@ class PIDSystem {
     		return output;
 		}
 
-		double turnPID(double target, double current) {
+		double turnPID(double target, double current) {											//PID code for turning velocity
     		double error = target - current;
 
 			//if statements for fixing zero turns (for turning)
@@ -102,7 +102,7 @@ class PIDSystem {
 		}
 
 		//small function for reseting the loop for reusability
-		void resetvariables() {
+		void resetvariables() {																	//function resets values in the PID system
 			Tprevious_error = 0;
 			Tintegral = 0;
 			Dprevious_error = 0;
@@ -115,7 +115,7 @@ PIDSystem PID;
  * postracking is the core for all of the position tracking functions on the robot.
  * While easily accessable from 
  */
-class postracking {
+class postracking {																				//position tracking (likely will be rewritten)
 	//public section specifically for public variables
 	public:
 		//stucture for all of the position values
@@ -215,7 +215,7 @@ class postracking {
 
 //creating a task function for running the position system
 postracking posTracking;
-void activatePositionTracking() {
+void activatePositionTracking() {																//function to activate all position tracking functionality
 	while (inertial.is_calibrating()) {
 		pros::delay(20);
 	}

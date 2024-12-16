@@ -9,7 +9,7 @@
 
 
 //class for placing a robot on a 2d plane for 
-class positiondisplay {
+class positiondisplay {                                                                                     //position display system
     private:
         //draws another display so it overlaps the old display
         void drawfield() {
@@ -45,11 +45,11 @@ class positiondisplay {
 
 positiondisplay posDisplay;
 
-class autonomousSelector {};
+class autonomousSelector {};                                                                                 //auton selector
 
 
 //sets the pen color relating to where a value lies on a low-high bar
-void setColorStatus(double value, double low, double high, bool inverted) {
+void setColorStatus(double value, double low, double high, bool inverted) {                                  //function for setting status based on color
     double ygreenpoint =  high*0.2;
     double yellowpoint =  high*0.4;
     double orangepoint =  high*0.6;
@@ -62,14 +62,14 @@ void setColorStatus(double value, double low, double high, bool inverted) {
 }
 
 //function to print the motors value
-void printMotorTemp(pros::Motor motor,std::string name,int line) {
+void printMotorTemp(pros::Motor motor,std::string name,int line) {                                          //prints motor temps
     int motortemp = motor.get_temperature();
     setColorStatus(motortemp, 0, 100, false);
     pros::screen::print(TEXT_SMALL, line,"%s",name + ": " + (std::to_string(motortemp)));
 }
 
 //task function that constantly sets all of the temps every .5 seconds
-void taskTempDisplay () {
+void taskTempDisplay () {                                                                                   //also prints motor temps
     pros::delay(20);
     pros::screen::set_pen(COLOR_WHITE);
     pros::screen::print(TEXT_SMALL, 1,"%s","Motor Temps");
@@ -81,7 +81,7 @@ void taskTempDisplay () {
     }
 }
 
-void taskOtherPrintDisplays () {
+void taskOtherPrintDisplays () {                                                                             //function for print testing
     pros::delay(20);
     pros::screen::set_pen(COLOR_WHITE);
     pros::screen::print(TEXT_SMALL, 6,"%s","Other Values");
