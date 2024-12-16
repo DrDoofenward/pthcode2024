@@ -31,4 +31,9 @@ pros::Vision vision (1);
 
 //tuneable values for certain systems
 int drivetrainTurnGoverner = 2;
-double ENCadjustment = 37.5;
+double ENCadjustment = 1.57;
+
+//double values for storing the final absolute position on the robot
+double FAPedX;
+double FAPedY;
+double FAPedTheta;

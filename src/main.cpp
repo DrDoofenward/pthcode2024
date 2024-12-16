@@ -148,15 +148,18 @@ drivetrainf drive;
  */
 void initialize() {
 	//wait for robot to finish startup
-	pros::delay(400);
+	pros::delay(100);
 	//initial coloring
 	pros::screen::set_pen(COLOR_BLACK);
 	pros::screen::fill_rect(0, 0, 480, 240);
+	//coloring each side and labeling zero
+	pros::screen::set_pen(COLOR_RED);
+	pros::screen::fill_rect(180, 20, 200, 220);
+	pros::screen::set_pen(COLOR_BLUE);
+	pros::screen::fill_rect(440, 20, 460, 220);
 	pros::delay(20);
-	posDisplay.updateposition(0, 0, 0);
 	//initialize brain sequences
 	pros::Task motortemps(taskTempDisplay);
-
 	//initiate position tracking
 	pros::Task realPosition(activatePositionTracking);
 
@@ -193,6 +196,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
+
 }
 
 /**
@@ -241,6 +245,8 @@ void opcontrol() {
 			mogoPressing = false;
 		}
 
+		//update position display
+		posDisplay.updateposition(posTracking.current.xPos, posTracking.current.yPos, posTracking.current.theta);
 
 		pros::delay(20);
 	}
