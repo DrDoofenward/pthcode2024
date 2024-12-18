@@ -118,22 +118,12 @@ PIDSystem PID;
 class postracking {																				//position tracking (likely will be rewritten)
 	//public section specifically for public variables
 	public:
-		//stucture for all of the position values
-		struct position {
-			double xPos = 0;
-			double yPos = 0;
-			double theta = 0;
-		} current,last,gpsS;
-
-		//drift offset value
-		// double driftOffSet;
-
+	
 		//finding out if the GPS will be enabled
 		bool gpsEnabled = true;
 		//function to toggle to GPS on and off
 		void toggleGPS() {
-			if (gpsEnabled) {
-				gpsEnabled = false;
+			if (gpsEnabled) { gpsEnabled = false;
 			} else {gpsEnabled = true;}
 		}
 
@@ -142,6 +132,13 @@ class postracking {																				//position tracking (likely will be rewri
 
 	//private holds all of the functions and variables that does not need to be called outside of the class
 	private:
+		//stucture for all of the position values
+		struct position {
+			double xPos = 0;
+			double yPos = 0;
+			double theta = 0;
+		} encU,gpsS;
+
 		//create a structure for each motor, listing its last value and delta value
 		struct extradata {
 			double last = 0;
@@ -172,43 +169,31 @@ class postracking {																				//position tracking (likely will be rewri
 			}
 		}
 
-		//outdates some values, and sets them as last values	
-		void outdatevalues() {
-			last.xPos = current.xPos;
-			last.yPos = current.yPos;
-			last.theta = current.theta;
-			
-		}
-
-	//public section that holds functions called outside of the class
-	public:
 		//functions 
-		void updatepos() {
+		void updateIMUpos() {
 			//get the theta
-			current.theta = inertial.get_heading();
-			//get the drift
-			// driftIMU = inertial.get_accel().x;
-			//older values are placed here
-			outdatevalues();
+			encU.theta = inertial.get_heading();
 			//calculated total change in distance
 			distance = ((((driveLB.get_position())-leftENC.last)+((driveRB.get_position())-rightENC.last))/2)/ENCadjustment;
 			totaldistance += distance;
 			//getting the x and y value
-			current.xPos += distance*(cos((current.theta*PI)/180));
-			current.yPos += distance*(sin((current.theta*PI)/180));
-			//accounting for drift
-			// current.xPos += driftIMU*(cos(((current.theta+90)*PI)/180));
-			// current.yPos += driftIMU*(sin(((current.theta+90)*PI)/180));
+			encU.xPos += distance*(cos((encU.theta*PI)/180));
+			encU.yPos += distance*(sin((encU.theta*PI)/180));
 
-			//X Nan
-			if ((std::isnan(current.xPos)) || (std::isinf(current.xPos)) ) {
-				current.xPos = 0; }
-			//Y Nan
-			if ((std::isnan(current.yPos)) || (std::isinf(current.yPos))) {
-				current.yPos = 0; }
+			//making sure X and Y are not going to nan or inf, bugging the code
+			if ((std::isnan(encU.xPos)) || (std::isinf(encU.xPos)) ) encU.xPos = 0;
+			if ((std::isnan(encU.yPos)) || (std::isinf(encU.yPos))) encU.yPos = 0;
 			//update the motor values
 			updatevalues();
-
+		}
+	//public section that holds functions called outside of the class
+	public:
+		void getAbsolutePosition() {
+			updateIMUpos();
+			//temporary solution to keep position tracking functioning
+			FAPedX = encU.xPos;
+			FAPedY = encU.yPos;
+			FAPedTheta = encU.theta;
 		}
 
 };
@@ -221,7 +206,7 @@ void activatePositionTracking() {																//function to activate all posi
 	}
 	// posTracking.driftOffSet = inertial.get_accel().x;
 	while (true) {
-		posTracking.updatepos();
+		posTracking.getAbsolutePosition();
 		pros::delay(20);
 	}
 }

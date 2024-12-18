@@ -67,11 +67,11 @@ class drivetrainf {
 			//while statement that runs til heading is accurate to about 1 degree of error
 			while (passlimit > 0) {
 				//run the pid loop
-				double velocity = PID.turnPID(heading, posTracking.current.theta);
+				double velocity = PID.turnPID(heading, FAPedTheta);
 				//assign drive velocity
 				assignDrivetrainVelocity(0, velocity);
 				//if make it to assigned heading more then 3 times, let it pass
-				if ((posTracking.current.theta >= heading-0.5) && (posTracking.current.theta <= heading+0.5)) {
+				if ((FAPedTheta >= heading-0.5) && (FAPedTheta <= heading+0.5)) {
 					passlimit -= 1;
 				}
 				//delay for no overflow
@@ -89,7 +89,7 @@ class drivetrainf {
 			while (passlimit > 0) {
 				//run the pid loop for both the distance and heading
 				double forwardvelocity = PID.distancePID(error, posTracking.totaldistance);
-				double turnvelocity = PID.turnPID(heading, posTracking.current.theta);
+				double turnvelocity = PID.turnPID(heading, FAPedTheta);
 				//assign drive velocity
 				assignDrivetrainVelocity(forwardvelocity, turnvelocity);
 				//if make it to assigned heading more then 3 times, let it pass
@@ -107,16 +107,16 @@ class drivetrainf {
 		void goToCoordinatePre(double x, double y) {																//go to a coordinate
 			int passlimit = 1;
 			//do initial turn
-			double heading = (atan2(y-posTracking.current.yPos,x-posTracking.current.xPos)*180/PI);
+			double heading = (atan2(y-FAPedY,x-FAPedX)*180/PI);
 			turnToHeading(heading);
 			//while statement that runs til heading is accurate to about 1 degree of error
 			while (passlimit > 0) {
 				//use atan2 to get the heading
-				heading = (atan2(y-posTracking.current.yPos,x-posTracking.current.xPos)*180/PI);
-				double error = std::sqrt(pow((x-posTracking.current.xPos),2)+pow((y-posTracking.current.yPos),2));
+				heading = (atan2(y-FAPedY,x-FAPedX)*180/PI);
+				double error = std::sqrt(pow((x-FAPedX),2)+pow((y-FAPedY),2));
 				//run the pid loop for both the distance and heading
 				double forwardvelocity = PID.distancePID(error, 0);
-				double turnvelocity = PID.turnPID(heading, posTracking.current.theta);
+				double turnvelocity = PID.turnPID(heading, FAPedTheta);
 				//assign drive velocity
 				assignDrivetrainVelocity(forwardvelocity, turnvelocity);
 				//if make it to assigned heading more then 3 times, let it pass
@@ -231,7 +231,7 @@ void opcontrol() {																							//driver control executor
 		}
 
 		//update position display
-		posDisplay.updateposition(posTracking.current.xPos, posTracking.current.yPos, posTracking.current.theta);
+		posDisplay.updateposition(FAPedX, FAPedY, FAPedTheta);
 
 		pros::delay(20);
 	}
