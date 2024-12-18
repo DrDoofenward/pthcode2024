@@ -3,7 +3,6 @@
 #include "pros/motors.h"
 #include "pros/motors.hpp"
 #include "pros/rtos.hpp"
-#include <cmath>
 
 
 //including seperate files in a conga line style

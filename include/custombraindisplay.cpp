@@ -80,12 +80,3 @@ void taskTempDisplay () {                                                       
         pros::delay(500);
     }
 }
-
-void taskOtherPrintDisplays () {                                                                             //function for print testing
-    pros::delay(20);
-    pros::screen::set_pen(COLOR_WHITE);
-    pros::screen::print(TEXT_SMALL, 6,"%s","Other Values");
-    while (true) {
-        pros::screen::print(TEXT_SMALL, 7,"%s","Distance: " + (std::to_string(posTracking.totaldistance)));
-    }
-}

@@ -1,6 +1,10 @@
 //positiontracking.cpp is 2nd in the conga line
 #include "setup.cpp"
 
+//adding math tingys
+#include <array>
+#include <cmath>
+
 #define PI 3.14159265
 
 /** PID SYSTEM
@@ -69,12 +73,8 @@ class PIDSystem {																				//PID system class and tunable values
     		double error = target - current;
 
 			//if statements for fixing zero turns (for turning)
-			if (error > 180) {
-   				error -= 360;
-			}
-			if (error < -180) {
-   				error += 360;
-			}
+			if (error > 180) error -= 360;
+			if (error < -180) error += 360;
 
     		//proportional equation
     		double proportional = error * TkP;
@@ -115,22 +115,12 @@ PIDSystem PID;
  * postracking is the core for all of the position tracking functions on the robot.
  * While easily accessable from 
  */
-class postracking {																				//position tracking (likely will be rewritten)
-	//public section specifically for public variables
+class postracking {																				//position tracking
+	//specifically public for totaldistance
 	public:
-	
-		//finding out if the GPS will be enabled
-		bool gpsEnabled = true;
-		//function to toggle to GPS on and off
-		void toggleGPS() {
-			if (gpsEnabled) { gpsEnabled = false;
-			} else {gpsEnabled = true;}
-		}
-
-		//extra values for position tracking and autonomous function
 		double totaldistance;
-
-	//private holds all of the functions and variables that does not need to be called outside of the class
+	
+	//private holds all of the data and functions that arent needed outside of the class
 	private:
 		//stucture for all of the position values
 		struct position {
@@ -148,28 +138,8 @@ class postracking {																				//position tracking (likely will be rewri
 
 		//extra values for position tracking and autonomous function
 		double distance;
-		//double driftIMU;
 
-		//function that updates the last and delta values for each motor
-		void updatevalues() {
-			//motors
-			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
-			leftENC.last = driveLB.get_position();
-			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
-			rightENC.last = driveRB.get_position();
-			//inertial
-			thetaIMU.delta = inertial.get_heading() - thetaIMU.last; //rotation
-			thetaIMU.last = inertial.get_heading();
-
-			//if the gps is enabled, add those values as well
-			if (gpsEnabled) {
-				gpsS.theta = gps.get_heading();
-				gpsS.xPos = gps.get_x_position();
-				gpsS.yPos = gps.get_y_position();
-			}
-		}
-
-		//functions 
+		//updates the IMU position
 		void updateIMUpos() {
 			//get the theta
 			encU.theta = inertial.get_heading();
@@ -183,13 +153,29 @@ class postracking {																				//position tracking (likely will be rewri
 			//making sure X and Y are not going to nan or inf, bugging the code
 			if ((std::isnan(encU.xPos)) || (std::isinf(encU.xPos)) ) encU.xPos = 0;
 			if ((std::isnan(encU.yPos)) || (std::isinf(encU.yPos))) encU.yPos = 0;
+
 			//update the motor values
-			updatevalues();
+			leftENC.delta = driveLB.get_position() - leftENC.last; //left motor
+			leftENC.last = driveLB.get_position();
+			rightENC.delta = driveRB.get_position() - rightENC.last; //right motor
+			rightENC.last = driveRB.get_position();
+			//update inertial as well
+			thetaIMU.delta = inertial.get_heading() - thetaIMU.last; //rotation
+			thetaIMU.last = inertial.get_heading();
 		}
+
+		//updates the GPS position
+		void updateGPSpos() {
+			gpsS.xPos = gps.get_x_position();
+			gpsS.yPos = gps.get_y_position();
+			gpsS.theta = gps.get_heading();
+		}
+
 	//public section that holds functions called outside of the class
 	public:
 		void getAbsolutePosition() {
 			updateIMUpos();
+			updateGPSpos();
 			//temporary solution to keep position tracking functioning
 			FAPedX = encU.xPos;
 			FAPedY = encU.yPos;
