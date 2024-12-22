@@ -2,7 +2,6 @@
 #include "setup.cpp"
 
 //adding math tingys
-#include <array>
 #include <cmath>
 
 #define PI 3.14159265
@@ -19,6 +18,10 @@ class postracking {																				//position tracking
 	
 	//private holds all of the data and functions that arent needed outside of the class
 	private:
+		//filter constraints
+		const double GPS_CORRECTION_RATE = 20; //gps correction interval (ms)
+		const double ALPHA = 0.95; //complementary filter tuning factor
+
 		//stucture for all of the position values
 		struct position {
 			double xPos = 0;
@@ -44,8 +47,8 @@ class postracking {																				//position tracking
 			distance = ((((driveLB.get_position())-leftENC.last)+((driveRB.get_position())-rightENC.last))/2)/ENCadjustment;
 			totaldistance += distance;
 			//getting the x and y value
-			encU.xPos += distance*(cos((encU.theta*PI)/180));
-			encU.yPos += distance*(sin((encU.theta*PI)/180));
+			encU.xPos = FAPedX + distance*(cos((encU.theta*PI)/180));
+			encU.yPos = FAPedY + distance*(sin((encU.theta*PI)/180));
 
 			//making sure X and Y are not going to nan or inf, bugging the code
 			if ((std::isnan(encU.xPos)) || (std::isinf(encU.xPos)) ) encU.xPos = 0;
@@ -73,10 +76,11 @@ class postracking {																				//position tracking
 		void getAbsolutePosition() {
 			updateIMUpos();
 			updateGPSpos();
-			//temporary solution to keep position tracking functioning
-			FAPedX = encU.xPos;
-			FAPedY = encU.yPos;
-			FAPedTheta = encU.theta;
+			//simple complementary filter (because i dont want to code a kalman filter atm)
+			FAPedX = ALPHA * encU.xPos + (1 - ALPHA) * gpsS.xPos;
+    		FAPedY = ALPHA * encU.yPos + (1 - ALPHA) * gpsS.yPos;
+    		FAPedTheta = ALPHA * encU.theta + (1 - ALPHA) * gpsS.theta;
+
 		}
 
 };

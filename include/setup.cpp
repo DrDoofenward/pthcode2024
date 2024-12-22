@@ -30,8 +30,8 @@ pros::GPS gps (11);
 pros::Vision vision (1);
 
 //tuneable values for certain systems
-int drivetrainTurnGoverner = 2;
-double ENCadjustment = 1.57;
+const int drivetrainTurnGoverner = 2;
+const double ENCadjustment = 1.57;
 
 //double values for storing the final absolute position on the robot
 double FAPedX;
