@@ -20,7 +20,7 @@ class postracking {																				//position tracking
 	private:
 		//filter constraints
 		const double GPS_CORRECTION_RATE = 20; //gps correction interval (ms)
-		const double ALPHA = 0.95; //complementary filter tuning factor
+		const double ALPHA = 0.90; //complementary filter tuning factor
 
 		//stucture for all of the position values
 		struct position {
