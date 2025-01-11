@@ -26,7 +26,7 @@ class positiondisplay {                                                         
         //draws a square that represents the robot so we know where the robot believes its positioned
         void drawrobot(double X, double Y, double theta) {
             double drawX = (X/18) + 320;
-            double drawY = (Y/18) + 120;
+            double drawY = (Y/-18) + 120;
             double truetheta = (theta-90) * (PI/180);
             pros::screen::set_pen(COLOR_YELLOW);
             pros::screen::fill_circle(drawX, drawY, 10);
@@ -79,4 +79,21 @@ void taskTempDisplay () {                                                       
         printMotorTemp(intake, "intakeMotor", 4);
         pros::delay(500);
     }
+}
+
+//creating a task function for running the position system
+postracking posTracking;
+void activatePositionTracking() {																//function to activate all position tracking functionality
+	while (inertial.is_calibrating()) {
+		pros::delay(20);
+	}
+	// posTracking.driftOffSet = inertial.get_accel().x;
+	while (true) {
+		posTracking.getAbsolutePosition();
+        //update position display
+		posDisplay.updateposition(FAPedX, FAPedY, FAPedTheta);
+        pros::screen::print(TEXT_SMALL, 6,"%s","X: " + (std::to_string(FAPedX)));
+        pros::screen::print(TEXT_SMALL, 7,"%s","Y: " + (std::to_string(FAPedY)));
+		pros::delay(20);
+	}
 }

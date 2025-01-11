@@ -14,7 +14,7 @@
 class postracking {																				//position tracking
 	//specifically public for totaldistance
 	public:
-		double totaldistance;
+		double totaldistance = 0;
 	
 	//private holds all of the data and functions that arent needed outside of the class
 	private:
@@ -37,18 +37,18 @@ class postracking {																				//position tracking
 		} leftENC, rightENC, thetaIMU;
 
 		//extra values for position tracking and autonomous function
-		double distance;
+		double curDistance;
 
 		//updates the IMU position
 		void updateIMUpos() {
 			//get the theta
 			encU.theta = inertial.get_heading();
 			//calculated total change in distance
-			distance = ((((driveLB.get_position())-leftENC.last)+((driveRB.get_position())-rightENC.last))/2)/ENCadjustment;
-			totaldistance += distance;
+			curDistance = ((((driveLB.get_position())-leftENC.last)+((driveRB.get_position())-rightENC.last))/2)/ENCadjustment;
+			totaldistance += curDistance;
 			//getting the x and y value
-			encU.xPos = FAPedX + distance*(sin((encU.theta*PI)/180));
-			encU.yPos = FAPedY - distance*(cos((encU.theta*PI)/180));
+			encU.xPos = FAPedX + curDistance*(sin((encU.theta*PI)/180));
+			encU.yPos = FAPedY + curDistance*(cos((encU.theta*PI)/180));
 
 			//making sure X and Y are not going to nan or inf, bugging the code
 			if ((std::isnan(encU.xPos)) || (std::isinf(encU.xPos)) ) encU.xPos = 0;
@@ -84,20 +84,9 @@ class postracking {																				//position tracking
 			FAPedX = encU.xPos;
     		FAPedY = encU.yPos;
     		FAPedTheta = encU.theta;
+			
 
 		}
 
 };
 
-//creating a task function for running the position system
-postracking posTracking;
-void activatePositionTracking() {																//function to activate all position tracking functionality
-	while (inertial.is_calibrating()) {
-		pros::delay(20);
-	}
-	// posTracking.driftOffSet = inertial.get_accel().x;
-	while (true) {
-		posTracking.getAbsolutePosition();
-		pros::delay(20);
-	}
-}

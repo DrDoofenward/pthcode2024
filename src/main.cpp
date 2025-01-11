@@ -8,6 +8,7 @@
 //including seperate files in a conga line style
 //main.cpp is the last of the conga line and runs everything
 #include "custombraindisplay.cpp"
+#include <cmath>
 
 
 //sensors and motors declared in setup.cpp
@@ -65,10 +66,10 @@ class PIDSystem {																				//PID system class and tunable values
 		double Dintegral = 0;
 		double Dintegral_limit = 50;
 
-		//PID values for turning
-		double DkP = 6;
-		double DkI = 0;
-		double DkD = 3;
+		//PID values for distance
+		double DkP = 0.25;
+		double DkI = 0.03;
+		double DkD = 0.2;
 
 	//functions for the system are stored here
 	public:
@@ -102,25 +103,20 @@ class PIDSystem {																				//PID system class and tunable values
 
 		double turnPID(double target, double current) {											//PID code for turning velocity
     		double error = target - current;
-
 			//if statements for fixing zero turns (for turning)
 			if (error > 180) error -= 360;
 			if (error < -180) error += 360;
-
     		//proportional equation
     		double proportional = error * TkP;
-    
     		//integral equation
     		Tintegral += error;
 			//if integral error gets too large, change it to the max (prevents windup)
 			if (Tintegral > Tintegral_limit) Tintegral = Tintegral_limit;
     		if (Tintegral < -Tintegral_limit) Tintegral = -Tintegral_limit;
     		double integral_part = Tintegral * TkI;
-    
     		//derivative equation
     		double derivative = (error - Tprevious_error) * TkD;
-    		Tprevious_error = error;
-    
+    		Tprevious_error = error; 
     		//combine the numbers and return the output
 			
 			/*take together the proportional and the derivative then smash together those
@@ -158,8 +154,8 @@ class drivetrainf {
  		* the 6 drivetrain motors. Used for both autonomous and driver control functions
  		*/
 		void assignDrivetrainVelocity(int forward_vel, int turn_vel) {												//assign drive velocity
-			driveLeft.move_velocity(5*(forward_vel+turn_vel));
-			driveRight.move_velocity(5*(forward_vel-turn_vel));
+			driveLeft.move_velocity(5*((forward_vel*-1)+turn_vel));
+			driveRight.move_velocity(5*((forward_vel*-1)-turn_vel));
 		}
 
 		//turntoheading is used to turn to a specific heading in degrees
@@ -181,6 +177,7 @@ class drivetrainf {
 			}
 			assignDrivetrainVelocity(0, 0);
 			PID.resetvariables();
+			pros::delay(20);
 		};
 
 		//placeholder for a moveforward
@@ -194,8 +191,9 @@ class drivetrainf {
 				double turnvelocity = PID.turnPID(heading, FAPedTheta);
 				//assign drive velocity
 				assignDrivetrainVelocity(forwardvelocity, turnvelocity);
+				//pros::screen::print(TEXT_SMALL, 5,"%s","balls: " + (std::to_string(error-posTracking.totaldistance))); test thing
 				//if make it to assigned heading more then 3 times, let it pass
-				if ((error >= posTracking.totaldistance-0.3) && (error <= posTracking.totaldistance+0.3)) {
+				if ((error >= posTracking.totaldistance-3) && (error <= posTracking.totaldistance+3)) {
 					passlimit -= 1;
 				}
 				//delay for no overflow
@@ -203,41 +201,30 @@ class drivetrainf {
 			}
 			assignDrivetrainVelocity(0, 0);
 			PID.resetvariables();
+			pros::delay(20);
 		};
 
 		//placeholder for a gotocoordinate
-		void goToCoordinatePre(double x, double y) {																//go to a coordinate
+		void goToCoordinate(double x, double y) {																//go to a coordinate
 			int passlimit = 1;
 			//do initial turn
-			double heading = (atan2(y-FAPedY,x-FAPedX)*180/PI);
+			double heading = (atan2(y-FAPedY,FAPedX-x)*180/PI)-90;
+			if (heading < 0) heading +=360;
+			pros::screen::print(TEXT_SMALL, 5,"%s","balls: " + (std::to_string(heading)));
 			turnToHeading(heading);
-			//while statement that runs til heading is accurate to about 1 degree of error
-			while (passlimit > 0) {
-				//use atan2 to get the heading
-				heading = (atan2(y-FAPedY,x-FAPedX)*180/PI);
-				double error = std::sqrt(pow((x-FAPedX),2)+pow((y-FAPedY),2));
-				//run the pid loop for both the distance and heading
-				double forwardvelocity = PID.distancePID(error, 0);
-				double turnvelocity = PID.turnPID(heading, FAPedTheta);
-				//assign drive velocity
-				assignDrivetrainVelocity(forwardvelocity, turnvelocity);
-				//if make it to assigned heading more then 3 times, let it pass
-				if ((error >= posTracking.totaldistance-0.6) && (error <= posTracking.totaldistance+0.6)) {
-					passlimit -= 1;
-				}
-				//delay for no overflow
-				pros::delay(20);
-			}
+			//find out the distance between current and set position
+			double distanceX = FAPedX - x;
+			double distanceY = FAPedY - y;
+			//pythagorean theoremmaxxing
+			double distance = sqrt(pow(distanceX, 2) + pow(distanceY, 2));
+			moveDistanceL(distance, heading);
 			assignDrivetrainVelocity(0, 0);
 			PID.resetvariables();
-			
+			pros::delay(20);
 		};
-
-		void goToCoordinateSpe() {};
 
 		
 };
-
 //assigns a nickname to the drive
 drivetrainf drive;
 
@@ -283,7 +270,20 @@ void disabled() {																								//built in disabled function
  * from where it left off.
  */
 void autonomous() {																							//autonomous executor
-
+	//prevents the autonomous from starting without inertial calibration completing
+	while (inertial.is_calibrating()) {
+		pros::delay(20);
+	}
+	//tune the drivetrain values
+	driveLeft.set_brake_modes(pros::E_MOTOR_BRAKE_COAST);
+	driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_COAST);
+	//declare the current position
+	FAPedX = 0;
+	FAPedY = 0;
+	FAPedTheta = 0;
+	pros::delay(20);
+	//testing the coordinate system
+	drive.goToCoordinate(600, 0);
 }
 
 /**
@@ -313,7 +313,7 @@ void opcontrol() {																							//driver control executor
 		driveRight.set_brake_modes(pros::E_MOTOR_BRAKE_COAST);
 
 		//finding the joystick value and assigning velocities to the motors
-		int turnVel = (master.get_analog(ANALOG_LEFT_X))/drivetrainTurnGoverner;
+		int turnVel = (master.get_analog(ANALOG_RIGHT_X))/drivetrainTurnGoverner;
 		int forwardVel = master.get_analog(ANALOG_LEFT_Y);
 		drive.assignDrivetrainVelocity(forwardVel, turnVel);
 		
@@ -331,10 +331,6 @@ void opcontrol() {																							//driver control executor
 		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1) == false) {
 			mogoPressing = false;
 		}
-
-		//update position display
-		posDisplay.updateposition(FAPedX, FAPedY, FAPedTheta);
-
 		pros::delay(20);
 	}
 }
